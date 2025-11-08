@@ -7,6 +7,8 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Core HTTP proxy functionality for LLM Edge Agent"
+keywords = ["http", "proxy", "llm", "middleware", "gateway"]
+categories = ["web-programming::http-server", "network-programming", "asynchronous"]
 
 [dependencies]
 # Web Framework

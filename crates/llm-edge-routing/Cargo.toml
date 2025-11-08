@@ -7,10 +7,12 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Intelligent routing engine for LLM Edge Agent"
+keywords = ["routing", "llm", "load-balancing", "failover", "ai"]
+categories = ["network-programming", "algorithms", "asynchronous"]
 
 [dependencies]
 # Provider types
-llm-edge-providers = { path = "../llm-edge-providers" }
+llm-edge-providers = { version = "0.1.0", path = "../llm-edge-providers" }
 
 # Async Runtime
 tokio.workspace = true

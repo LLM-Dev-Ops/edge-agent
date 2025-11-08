@@ -15,7 +15,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["LLM Edge Agent Team"]
 license = "Apache-2.0"
-repository = "https://github.com/yourusername/llm-edge-agent"
+repository = "https://github.com/globalbusinessadvisors/llm-edge-agent"
 rust-version = "1.75"
 
 [workspace.dependencies]

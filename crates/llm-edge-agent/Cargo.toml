@@ -7,15 +7,17 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Main LLM Edge Agent binary - High-performance LLM intercepting proxy"
+keywords = ["llm", "proxy", "ai", "edge", "gateway"]
+categories = ["web-programming::http-server", "network-programming", "asynchronous"]
 
 [dependencies]
 # Workspace crates
-llm-edge-proxy = { path = "../llm-edge-proxy" }
-llm-edge-cache = { path = "../llm-edge-cache" }
-llm-edge-routing = { path = "../llm-edge-routing" }
-llm-edge-providers = { path = "../llm-edge-providers" }
-llm-edge-security = { path = "../llm-edge-security" }
-llm-edge-monitoring = { path = "../llm-edge-monitoring" }
+llm-edge-proxy = { version = "0.1.0", path = "../llm-edge-proxy" }
+llm-edge-cache = { version = "0.1.0", path = "../llm-edge-cache" }
+llm-edge-routing = { version = "0.1.0", path = "../llm-edge-routing" }
+llm-edge-providers = { version = "0.1.0", path = "../llm-edge-providers" }
+llm-edge-security = { version = "0.1.0", path = "../llm-edge-security" }
+llm-edge-monitoring = { version = "0.1.0", path = "../llm-edge-monitoring" }
 
 # Web Framework & Runtime
 axum.workspace = true

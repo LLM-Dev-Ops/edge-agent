@@ -7,6 +7,8 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Multi-tier caching system (L1/L2/L3) for LLM Edge Agent"
+keywords = ["cache", "redis", "moka", "llm", "performance"]
+categories = ["caching", "asynchronous", "database"]
 
 [dependencies]
 # Caching

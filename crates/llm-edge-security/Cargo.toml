@@ -7,6 +7,8 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Security layer for LLM Edge Agent (auth, validation, PII redaction)"
+keywords = ["security", "auth", "pii", "validation", "llm"]
+categories = ["authentication", "web-programming", "cryptography"]
 
 [dependencies]
 # Web Framework

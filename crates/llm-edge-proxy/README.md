@@ -1,6 +1,10 @@
 # llm-edge-proxy
 
-Core HTTP proxy functionality for LLM Edge Agent (Layer 1).
+[![Crates.io](https://img.shields.io/crates/v/llm-edge-proxy.svg)](https://crates.io/crates/llm-edge-proxy)
+[![Documentation](https://docs.rs/llm-edge-proxy/badge.svg)](https://docs.rs/llm-edge-proxy)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/globalbusinessadvisors/llm-edge-agent/blob/main/LICENSE)
+
+Core HTTP proxy functionality for LLM Edge Agent - A high-performance, production-ready HTTP/HTTPS proxy server for LLM requests.
 
 ## Overview
 
@@ -42,6 +46,17 @@ This crate provides the foundational HTTP/HTTPS server layer with:
 - `POST /v1/completions` - Legacy completion endpoint
 - Note: Returns mock responses in Layer 1
 
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+llm-edge-proxy = "0.1.0"
+tokio = { version = "1.40", features = ["full"] }
+anyhow = "1.0"
+```
+
 ## Usage
 
 ### As a Library
@@ -53,14 +68,47 @@ use llm_edge_proxy::{Config, build_app, serve};
 async fn main() -> anyhow::Result<()> {
     // Load configuration
     let config = Config::from_env()?;
-    
+
     // Build application with middleware
     let app = build_app(config.clone()).await?;
-    
+
     // Start server
     let addr = config.server.address.parse()?;
     serve(addr, app).await?;
-    
+
+    Ok(())
+}
+```
+
+### Standalone Usage (Outside Workspace)
+
+When using this crate independently:
+
+```rust
+use llm_edge_proxy::{Config, ProxyConfig, ServerConfig, build_app, serve};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // Manual configuration
+    let config = Config {
+        server: ServerConfig {
+            address: "0.0.0.0:8080".to_string(),
+            timeout_seconds: 30,
+            max_request_size: 10_485_760,
+        },
+        proxy: ProxyConfig {
+            auth_enabled: true,
+            api_keys: vec!["your-api-key".to_string()],
+            rate_limit_enabled: true,
+            rate_limit_rpm: 1000,
+            rate_limit_burst: 100,
+        },
+    };
+
+    let app = build_app(config.clone()).await?;
+    let addr = config.server.address.parse()?;
+    serve(addr, app).await?;
+
     Ok(())
 }
 ```
@@ -223,9 +271,22 @@ Layer 1 provides integration points for Layer 2:
 3. **Error Handling**: Structured errors ready for orchestration
 4. **Tracing**: Request correlation for distributed tracing
 
+## Contributing
+
+Contributions are welcome! Please see the [main repository](https://github.com/globalbusinessadvisors/llm-edge-agent) for guidelines.
+
+## Related Crates
+
+This crate is part of the LLM Edge Agent ecosystem:
+- [`llm-edge-cache`](https://crates.io/crates/llm-edge-cache) - Multi-tier caching system
+- [`llm-edge-routing`](https://crates.io/crates/llm-edge-routing) - Intelligent routing engine
+- [`llm-edge-providers`](https://crates.io/crates/llm-edge-providers) - LLM provider adapters
+- [`llm-edge-security`](https://crates.io/crates/llm-edge-security) - Security layer
+- [`llm-edge-monitoring`](https://crates.io/crates/llm-edge-monitoring) - Observability
+
 ## License
 
-Apache-2.0
+Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com/globalbusinessadvisors/llm-edge-agent/blob/main/LICENSE) for details.
 
 ## Status
 
