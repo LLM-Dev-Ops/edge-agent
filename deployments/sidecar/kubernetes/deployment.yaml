@@ -1,0 +1,421 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-edge-agent
+  labels:
+    name: llm-edge-agent
+    monitoring: enabled
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-edge-agent-config
+  namespace: llm-edge-agent
+data:
+  config.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 8080
+
+    routing:
+      strategy: "intelligent"
+
+    cache:
+      enabled: true
+      type: "memory"
+      maxSize: "512MB"
+      ttl: 300
+
+    monitoring:
+      prometheus:
+        enabled: true
+        port: 9090
+      opentelemetry:
+        enabled: true
+        endpoint: "http://otel-collector.monitoring:4318"
+
+    security:
+      authentication:
+        enabled: true
+        type: "api-key"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: llm-api-keys
+  namespace: llm-edge-agent
+type: Opaque
+stringData:
+  openai: "sk-proj-xxxx" # Replace with actual key
+  anthropic: "sk-ant-xxxx" # Replace with actual key
+  azure: "xxxx" # Replace with actual key
+  admin-api-key: "admin-xxxx" # Replace with actual key
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+  namespace: llm-edge-agent
+  labels:
+    app: myapp
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: myapp
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-with-llm-proxy
+  namespace: llm-edge-agent
+  labels:
+    app: myapp
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: v1
+      annotations:
+        # Prometheus scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+        # Sidecar injection metadata
+        sidecar.llm-edge-agent/inject: "true"
+        sidecar.llm-edge-agent/version: "1.0.0"
+
+    spec:
+      serviceAccountName: myapp-service-account
+
+      # Init container for configuration validation
+      initContainers:
+        - name: config-validator
+          image: busybox:latest
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Validating configuration..."
+              if [ ! -f /config/config.yaml ]; then
+                echo "Error: Configuration file not found"
+                exit 1
+              fi
+              echo "Configuration validated successfully"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+
+      containers:
+        # Main application container
+        - name: myapp
+          image: myapp:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            # Point to local sidecar proxy
+            - name: LLM_PROXY_URL
+              value: "http://localhost:8080"
+            - name: OPENAI_API_BASE
+              value: "http://localhost:8080/v1"
+            - name: ANTHROPIC_API_BASE
+              value: "http://localhost:8080/v1"
+            - name: NODE_ENV
+              value: "production"
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+
+        # LLM-Edge-Agent sidecar container
+        - name: llm-edge-agent-sidecar
+          image: llm-edge-agent/sidecar:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: proxy
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+
+          env:
+            # Agent mode
+            - name: AGENT_MODE
+              value: "sidecar"
+            - name: NODE_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "info"
+
+            # Cache configuration
+            - name: CACHE_TYPE
+              value: "memory"
+            - name: CACHE_MAX_SIZE
+              value: "512MB"
+
+            # Redis for shared cache (optional)
+            - name: REDIS_HOST
+              value: "redis-cluster.redis.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
+
+            # Provider API keys from secrets
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-api-keys
+                  key: openai
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-api-keys
+                  key: anthropic
+            - name: AZURE_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-api-keys
+                  key: azure
+
+            # Admin API key
+            - name: ADMIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-api-keys
+                  key: admin-api-key
+
+            # Monitoring
+            - name: PROMETHEUS_ENABLED
+              value: "true"
+            - name: OTEL_ENABLED
+              value: "true"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4318"
+
+            # Pod metadata for tracing
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+          volumeMounts:
+            - name: config
+              mountPath: /etc/llm-edge-agent
+              readOnly: true
+            - name: cache
+              mountPath: /cache
+            - name: logs
+              mountPath: /var/log/llm-edge-agent
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+
+          # Security context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+      # Volumes
+      volumes:
+        - name: config
+          configMap:
+            name: llm-edge-agent-config
+        - name: cache
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: logs
+          emptyDir:
+            sizeLimit: 500Mi
+
+      # Security and scheduling
+      securityContext:
+        fsGroup: 1001
+        runAsNonRoot: true
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - myapp
+                topologyKey: kubernetes.io/hostname
+
+      # Tolerations for node taints
+      tolerations:
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myapp-service-account
+  namespace: llm-edge-agent
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-pdb
+  namespace: llm-edge-agent
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: myapp
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  namespace: llm-edge-agent
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp-with-llm-proxy
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: llm_edge_agent_active_requests
+        target:
+          type: AverageValue
+          averageValue: "50"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: redis
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: llm-edge-agent-monitor
+  namespace: llm-edge-agent
+  labels:
+    app: myapp
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

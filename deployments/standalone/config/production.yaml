@@ -1,0 +1,326 @@
+# LLM-Edge-Agent Standalone Production Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  tls:
+    enabled: true
+    cert: "/etc/llm-edge-agent/certs/server.crt"
+    key: "/etc/llm-edge-agent/certs/server.key"
+    minVersion: "TLSv1.2"
+
+  # Graceful shutdown
+  gracefulShutdown:
+    enabled: true
+    timeoutSeconds: 30
+
+  # Request limits
+  limits:
+    maxRequestSize: "10MB"
+    maxHeaderSize: "8KB"
+    keepAliveTimeout: 60000 # ms
+    requestTimeout: 120000 # ms
+
+# Provider configurations
+providers:
+  openai:
+    enabled: true
+    endpoint: "https://api.openai.com/v1"
+    apiKey: "${OPENAI_API_KEY}"
+    timeout: 60000 # ms
+    retries: 3
+    models:
+      - name: "gpt-4"
+        priority: 1
+        costPer1KTokens:
+          prompt: 0.03
+          completion: 0.06
+      - name: "gpt-3.5-turbo"
+        priority: 2
+        costPer1KTokens:
+          prompt: 0.0015
+          completion: 0.002
+
+  anthropic:
+    enabled: true
+    endpoint: "https://api.anthropic.com/v1"
+    apiKey: "${ANTHROPIC_API_KEY}"
+    timeout: 60000
+    retries: 3
+    models:
+      - name: "claude-3-opus-20240229"
+        priority: 1
+        costPer1KTokens:
+          prompt: 0.015
+          completion: 0.075
+      - name: "claude-3-sonnet-20240229"
+        priority: 2
+        costPer1KTokens:
+          prompt: 0.003
+          completion: 0.015
+
+  azure_openai:
+    enabled: true
+    endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    apiKey: "${AZURE_OPENAI_API_KEY}"
+    apiVersion: "2024-02-15-preview"
+    timeout: 60000
+    retries: 3
+    deployments:
+      - name: "gpt-4-deployment"
+        model: "gpt-4"
+        priority: 1
+
+# Routing configuration
+routing:
+  strategy: "intelligent" # Options: round-robin, least-latency, cost-optimized, intelligent
+
+  # Intelligent routing parameters
+  intelligent:
+    latencyWeight: 0.3
+    costWeight: 0.4
+    availabilityWeight: 0.3
+    evaluationWindowSeconds: 300
+
+  # Failover configuration
+  failover:
+    enabled: true
+    maxRetries: 3
+    retryDelayMs: 1000
+    exponentialBackoff: true
+    circuitBreaker:
+      enabled: true
+      failureThreshold: 5
+      resetTimeoutSeconds: 60
+      halfOpenRequests: 3
+
+  # Load balancing
+  loadBalancing:
+    algorithm: "weighted-round-robin" # weighted-round-robin, least-connections
+    healthCheck:
+      enabled: true
+      intervalSeconds: 30
+      timeoutSeconds: 5
+
+# Caching configuration
+cache:
+  enabled: true
+
+  # Primary cache (Redis)
+  primary:
+    type: "redis"
+    redis:
+      cluster: false
+      host: "${REDIS_HOST:-localhost}"
+      port: "${REDIS_PORT:-6379}"
+      db: 0
+      password: "${REDIS_PASSWORD}"
+      tls:
+        enabled: false
+      poolSize: 10
+      connectTimeout: 5000
+      commandTimeout: 3000
+
+    # Cache strategy
+    strategy: "semantic" # exact, semantic
+    ttl: 3600 # seconds
+    maxSize: "2GB"
+
+    # Semantic caching
+    semantic:
+      enabled: true
+      embeddingModel: "text-embedding-3-small"
+      similarityThreshold: 0.95
+      vectorDatabase: "redis-search"
+
+  # Secondary cache (in-memory)
+  secondary:
+    enabled: true
+    type: "memory"
+    maxSize: "512MB"
+    ttl: 300 # seconds
+    evictionPolicy: "lru"
+
+  # Cache warming
+  warming:
+    enabled: false
+    schedule: "0 2 * * *" # Daily at 2 AM
+    queries:
+      - "Common query pattern 1"
+      - "Common query pattern 2"
+
+# Monitoring and observability
+monitoring:
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+    collectDefaultMetrics: true
+
+  # OpenTelemetry
+  opentelemetry:
+    enabled: true
+    endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
+    protocol: "http/protobuf"
+    headers:
+      Authorization: "Bearer ${OTEL_API_KEY}"
+
+    # Tracing
+    tracing:
+      enabled: true
+      samplingRate: 0.1 # 10% of requests
+      exportIntervalMs: 5000
+
+    # Metrics
+    metrics:
+      enabled: true
+      exportIntervalMs: 10000
+
+  # Health checks
+  health:
+    enabled: true
+    path: "/health"
+    readinessPath: "/ready"
+    livenessPath: "/live"
+
+  # Audit logging
+  auditLog:
+    enabled: true
+    path: "/var/log/llm-edge-agent/audit.log"
+    level: "info" # debug, info, warn, error
+    format: "json"
+    rotation:
+      enabled: true
+      maxSize: "100MB"
+      maxAge: 30 # days
+      maxBackups: 10
+      compress: true
+
+    # Privacy controls
+    privacy:
+      hashPrompts: true
+      hashApiKeys: true
+      redactPII: true
+      storeCompletions: false
+
+# Security configuration
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "api-key" # api-key, oauth2, jwt
+
+    apiKey:
+      headerName: "X-API-Key"
+      queryParam: "api_key"
+      validateFormat: true
+      keys:
+        - key: "${ADMIN_API_KEY}"
+          name: "admin"
+          permissions: ["read", "write", "admin"]
+        - key: "${CLIENT_API_KEY}"
+          name: "client"
+          permissions: ["read", "write"]
+
+    oauth2:
+      enabled: false
+      issuer: "https://auth.example.com"
+      audience: "llm-edge-agent"
+      jwksUri: "https://auth.example.com/.well-known/jwks.json"
+
+  # Rate limiting
+  rateLimiting:
+    enabled: true
+    strategy: "sliding-window" # fixed-window, sliding-window, token-bucket
+
+    global:
+      windowMs: 60000 # 1 minute
+      maxRequests: 1000
+
+    perClient:
+      windowMs: 60000
+      maxRequests: 100
+
+    perModel:
+      windowMs: 60000
+      maxRequests: 500
+
+  # CORS
+  cors:
+    enabled: true
+    origins:
+      - "https://app.example.com"
+      - "https://dashboard.example.com"
+    methods: ["GET", "POST"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-API-Key"]
+    credentials: true
+
+  # Request validation
+  validation:
+    enabled: true
+    maxPromptLength: 100000
+    maxCompletionTokens: 4000
+    allowedModels: "*" # Or array of specific models
+    blockPatterns:
+      - pattern: "malicious-pattern"
+        action: "reject"
+
+# Logging
+logging:
+  level: "info" # debug, info, warn, error
+  format: "json" # json, text
+  output: "stdout" # stdout, file
+
+  # Structured logging
+  structured:
+    enabled: true
+    includeTimestamp: true
+    includeHostname: true
+    includeRequestId: true
+
+  # Performance logging
+  performance:
+    enabled: true
+    slowRequestThresholdMs: 5000
+
+# Advanced features
+features:
+  # Request queueing
+  queueing:
+    enabled: true
+    maxQueueSize: 1000
+    maxWaitTimeMs: 30000
+    priority: "fifo" # fifo, lifo, priority
+
+  # Cost budgeting
+  costBudgeting:
+    enabled: true
+    dailyBudgetUSD: 1000
+    alertThresholds:
+      - threshold: 0.7 # 70%
+        action: "alert"
+      - threshold: 0.9 # 90%
+        action: "alert"
+      - threshold: 1.0 # 100%
+        action: "block"
+
+  # A/B testing
+  abTesting:
+    enabled: false
+    experiments:
+      - name: "model-comparison"
+        variants:
+          - name: "control"
+            provider: "openai"
+            model: "gpt-4"
+            traffic: 0.5
+          - name: "treatment"
+            provider: "anthropic"
+            model: "claude-3-opus"
+            traffic: 0.5
+
+# Environment
+environment: "production"
+region: "us-west-2"
+version: "1.0.0"

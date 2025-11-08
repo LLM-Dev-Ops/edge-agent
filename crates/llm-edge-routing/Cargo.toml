@@ -1,0 +1,40 @@
+[package]
+name = "llm-edge-routing"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Intelligent routing engine for LLM Edge Agent"
+
+[dependencies]
+# Provider types
+llm-edge-providers = { path = "../llm-edge-providers" }
+
+# Async Runtime
+tokio.workspace = true
+futures.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Resilience
+failsafe.workspace = true
+
+# Observability
+tracing.workspace = true
+metrics.workspace = true
+
+# Error Handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Utilities
+uuid.workspace = true
+chrono.workspace = true
+parking_lot = "0.12.5"
+
+[dev-dependencies]
+tokio-test = "0.4"

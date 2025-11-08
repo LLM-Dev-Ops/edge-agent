@@ -1,0 +1,143 @@
+# LLM Edge Agent Configuration
+# This is the main configuration file for LLM Edge Agent
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  tls:
+    enabled: false
+    cert_path: ""
+    key_path: ""
+
+# Cache Configuration
+cache:
+  # L1 In-Memory Cache (Moka)
+  l1:
+    enabled: true
+    max_capacity: 1000
+    ttl_seconds: 300  # 5 minutes
+
+  # L2 Distributed Cache (Redis)
+  l2:
+    enabled: false
+    url: "redis://localhost:6379"
+    ttl_seconds: 3600  # 1 hour
+    pool_size: 20
+
+  # L3 Semantic Cache (Vector DB) - Future
+  l3:
+    enabled: false
+    similarity_threshold: 0.95
+
+# Provider Configuration
+providers:
+  openai:
+    enabled: true
+    api_key: "${OPENAI_API_KEY}"
+    base_url: "https://api.openai.com/v1"
+    timeout_seconds: 60
+    max_retries: 3
+
+  anthropic:
+    enabled: true
+    api_key: "${ANTHROPIC_API_KEY}"
+    base_url: "https://api.anthropic.com/v1"
+    timeout_seconds: 60
+    max_retries: 3
+
+  google:
+    enabled: false
+    api_key: "${GOOGLE_API_KEY}"
+    timeout_seconds: 60
+    max_retries: 3
+
+  aws_bedrock:
+    enabled: false
+    region: "us-east-1"
+    timeout_seconds: 60
+    max_retries: 3
+
+  azure_openai:
+    enabled: false
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    timeout_seconds: 60
+    max_retries: 3
+
+# Routing Configuration
+routing:
+  strategy: "hybrid"  # Options: cost_based, latency_based, hybrid, round_robin
+
+  # Hybrid strategy weights (sum should equal 1.0)
+  hybrid:
+    cost_weight: 0.4
+    latency_weight: 0.4
+    reliability_weight: 0.2
+
+  # Circuit breaker configuration
+  circuit_breaker:
+    failure_threshold: 5
+    timeout_seconds: 30
+
+  # Fallback chain
+  fallback:
+    enabled: true
+    max_retries: 2
+
+# Security Configuration
+security:
+  # Authentication
+  auth:
+    type: "api_key"  # Options: api_key, jwt, none
+    api_keys:
+      - client_id: "default"
+        api_key: "${API_KEY}"
+
+  # Request validation
+  validation:
+    max_request_size_bytes: 10485760  # 10MB
+    max_tokens: 128000
+
+  # PII Redaction
+  pii:
+    enabled: true
+    redact_in_logs: true
+
+  # Rate Limiting
+  rate_limiting:
+    enabled: true
+    global_requests_per_second: 1000
+    per_client_requests_per_second: 100
+
+# Observability Configuration
+observability:
+  # Metrics
+  metrics:
+    enabled: true
+    prometheus_port: 9091
+    path: "/metrics"
+
+  # Tracing
+  tracing:
+    enabled: false
+    exporter: "otlp"
+    endpoint: "http://localhost:4317"
+    sampling_rate: 0.1  # 10% sampling
+
+  # Logging
+  logging:
+    level: "info"  # Options: trace, debug, info, warn, error
+    format: "json"  # Options: json, pretty
+    privacy:
+      hash_prompts: true
+      redact_pii: true
+      store_completions: false
+
+# Feature Flags
+features:
+  semantic_cache: false
+  shield_integration: false
+  observatory_integration: false
+  auto_optimizer: false
+  incident_manager: false

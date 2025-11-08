@@ -1,0 +1,82 @@
+# Production Configuration
+# Optimized settings for production deployment
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  tls:
+    enabled: true
+    cert_path: "/etc/llm-edge-agent/tls/cert.pem"
+    key_path: "/etc/llm-edge-agent/tls/key.pem"
+
+cache:
+  l1:
+    enabled: true
+    max_capacity: 10000
+    ttl_seconds: 300
+
+  l2:
+    enabled: true
+    url: "${REDIS_URL}"
+    ttl_seconds: 3600
+    pool_size: 50
+
+  l3:
+    enabled: false  # Enable after MVP
+
+providers:
+  openai:
+    enabled: true
+    api_key: "${OPENAI_API_KEY}"
+
+  anthropic:
+    enabled: true
+    api_key: "${ANTHROPIC_API_KEY}"
+
+routing:
+  strategy: "hybrid"
+  hybrid:
+    cost_weight: 0.4
+    latency_weight: 0.4
+    reliability_weight: 0.2
+
+  circuit_breaker:
+    failure_threshold: 5
+    timeout_seconds: 30
+
+security:
+  auth:
+    type: "api_key"
+    # API keys should be loaded from secure storage
+
+  validation:
+    max_request_size_bytes: 10485760
+    max_tokens: 128000
+
+  pii:
+    enabled: true
+    redact_in_logs: true
+
+  rate_limiting:
+    enabled: true
+    global_requests_per_second: 10000
+    per_client_requests_per_second: 100
+
+observability:
+  metrics:
+    enabled: true
+    prometheus_port: 9091
+
+  tracing:
+    enabled: true
+    exporter: "otlp"
+    endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+    sampling_rate: 0.1
+
+  logging:
+    level: "info"
+    format: "json"
+    privacy:
+      hash_prompts: true
+      redact_pii: true
+      store_completions: false

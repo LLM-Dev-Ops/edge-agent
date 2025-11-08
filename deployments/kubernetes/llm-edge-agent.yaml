@@ -1,0 +1,156 @@
+---
+# LLM Edge Agent Secret (API Keys)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: llm-edge-secrets
+  namespace: llm-edge-production
+type: Opaque
+stringData:
+  openai-api-key: ""  # Set via kubectl create secret
+  anthropic-api-key: ""  # Set via kubectl create secret
+---
+# LLM Edge Agent ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-edge-config
+  namespace: llm-edge-production
+data:
+  HOST: "0.0.0.0"
+  PORT: "8080"
+  METRICS_PORT: "9090"
+  ENABLE_L2_CACHE: "true"
+  REDIS_CLUSTER_NODES: "redis-1:6379,redis-2:6379,redis-3:6379"
+  L1_CACHE_SIZE: "1000"
+  L1_TTL_SECONDS: "300"
+  L2_TTL_SECONDS: "3600"
+  RUST_LOG: "info,llm_edge_agent=debug"
+  ENABLE_TRACING: "true"
+  OTLP_ENDPOINT: "http://jaeger:4317"
+  ENABLE_METRICS: "true"
+  TOKIO_WORKER_THREADS: "8"
+---
+# LLM Edge Agent Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-edge-agent
+  namespace: llm-edge-production
+  labels:
+    app: llm-edge-agent
+    tier: application
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app: llm-edge-agent
+---
+# LLM Edge Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-edge-agent
+  namespace: llm-edge-production
+  labels:
+    app: llm-edge-agent
+    tier: application
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: llm-edge-agent
+  template:
+    metadata:
+      labels:
+        app: llm-edge-agent
+        tier: application
+    spec:
+      containers:
+      - name: llm-edge-agent
+        image: llm-edge-agent:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-edge-secrets
+              key: openai-api-key
+              optional: true
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-edge-secrets
+              key: anthropic-api-key
+              optional: true
+        - name: REDIS_URL
+          value: "redis://redis-1:6379"
+        envFrom:
+        - configMapRef:
+            name: llm-edge-config
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 2Gi
+          limits:
+            cpu: 4000m
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 40
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-edge-agent-hpa
+  namespace: llm-edge-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-edge-agent
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

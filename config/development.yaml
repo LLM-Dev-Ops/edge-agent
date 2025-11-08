@@ -1,0 +1,38 @@
+# Development Configuration
+# Override settings for local development
+
+server:
+  host: "127.0.0.1"
+  port: 8080
+
+cache:
+  l1:
+    max_capacity: 100
+    ttl_seconds: 60
+
+  l2:
+    enabled: false
+
+providers:
+  openai:
+    enabled: true
+  anthropic:
+    enabled: true
+
+routing:
+  strategy: "round_robin"
+
+security:
+  auth:
+    type: "none"  # Disable auth in development
+
+  pii:
+    enabled: false  # Disable PII redaction in dev
+
+  rate_limiting:
+    enabled: false  # Disable rate limiting in dev
+
+observability:
+  logging:
+    level: "debug"
+    format: "pretty"

@@ -1,0 +1,78 @@
+# Prometheus Configuration for LLM Edge Agent
+# Enterprise-grade metrics collection and alerting
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'llm-edge-agent-production'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093  # Uncomment when Alertmanager is deployed
+
+# Load alerting rules
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # LLM Edge Agent - Main application metrics
+  - job_name: 'llm-edge-agent'
+    static_configs:
+      - targets: ['llm-edge-agent:9090']
+        labels:
+          service: 'llm-edge-agent'
+          tier: 'application'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          tier: 'monitoring'
+
+  # Redis nodes
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis-1:6379'
+          - 'redis-2:6379'
+          - 'redis-3:6379'
+        labels:
+          service: 'redis'
+          tier: 'cache'
+    # Note: Requires redis_exporter for full metrics
+    # For basic monitoring, use redis INFO command
+
+  # Jaeger metrics (if exposed)
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
+        labels:
+          service: 'jaeger'
+          tier: 'tracing'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+# Remote write configuration (optional - for long-term storage)
+# remote_write:
+#   - url: "https://prometheus-remote-write-endpoint.example.com/api/v1/write"
+#     basic_auth:
+#       username: "user"
+#       password: "password"
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: "https://prometheus-remote-read-endpoint.example.com/api/v1/read"
+#     basic_auth:
+#       username: "user"
+#       password: "password"

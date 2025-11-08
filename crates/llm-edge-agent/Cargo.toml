@@ -1,0 +1,70 @@
+[package]
+name = "llm-edge-agent"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Main LLM Edge Agent binary - High-performance LLM intercepting proxy"
+
+[dependencies]
+# Workspace crates
+llm-edge-proxy = { path = "../llm-edge-proxy" }
+llm-edge-cache = { path = "../llm-edge-cache" }
+llm-edge-routing = { path = "../llm-edge-routing" }
+llm-edge-providers = { path = "../llm-edge-providers" }
+llm-edge-security = { path = "../llm-edge-security" }
+llm-edge-monitoring = { path = "../llm-edge-monitoring" }
+
+# Web Framework & Runtime
+axum.workspace = true
+hyper.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tokio.workspace = true
+
+# Configuration
+figment.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# Observability
+tracing.workspace = true
+tracing-subscriber.workspace = true
+metrics.workspace = true
+metrics-exporter-prometheus.workspace = true
+
+# Error Handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Utilities
+uuid.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+# Testing framework
+tokio-test = "0.4"
+tokio = { workspace = true, features = ["test-util"] }
+
+# HTTP testing
+reqwest = { workspace = true }
+wiremock = "0.6"
+mockito = "1.5"
+
+# Assertions and utilities
+assert_matches = "1.5"
+proptest = "1.4"
+rstest = "0.21"
+
+# Async utilities
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Mock dependencies
+parking_lot = "0.12"
+
+# Serialization for tests
+serde = { workspace = true }
+serde_json = { workspace = true }

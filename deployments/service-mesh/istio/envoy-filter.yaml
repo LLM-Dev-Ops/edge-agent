@@ -1,0 +1,418 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: llm-edge-agent-wasm-filter
+  namespace: istio-system
+spec:
+  # Apply to sidecars with specific label
+  workloadSelector:
+    labels:
+      llm-proxy: enabled
+
+  configPatches:
+    # Patch 1: Add WASM plugin to HTTP filter chain
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+              subFilter:
+                name: "envoy.filters.http.router"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: llm-edge-agent-wasm
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+            config:
+              name: "llm-edge-agent"
+              root_id: "llm_edge_agent_root"
+
+              # VM Configuration
+              vm_config:
+                runtime: "envoy.wasm.runtime.v8"
+                vm_id: "llm_edge_agent_vm"
+                code:
+                  local:
+                    filename: "/etc/llm-edge-agent/plugin.wasm"
+                allow_precompiled: true
+
+              # Plugin Configuration
+              configuration:
+                "@type": "type.googleapis.com/google.protobuf.StringValue"
+                value: |
+                  {
+                    "mode": "service-mesh",
+                    "routing": {
+                      "strategy": "intelligent",
+                      "providers": [
+                        {
+                          "name": "openai",
+                          "endpoint": "api.openai.com",
+                          "priority": 1,
+                          "weight": 50,
+                          "timeout": "60s",
+                          "retries": 3
+                        },
+                        {
+                          "name": "anthropic",
+                          "endpoint": "api.anthropic.com",
+                          "priority": 2,
+                          "weight": 30,
+                          "timeout": "60s",
+                          "retries": 3
+                        },
+                        {
+                          "name": "azure-openai",
+                          "endpoint": "*.openai.azure.com",
+                          "priority": 3,
+                          "weight": 20,
+                          "timeout": "60s",
+                          "retries": 3
+                        }
+                      ],
+                      "failover": {
+                        "enabled": true,
+                        "maxRetries": 3,
+                        "retryOn": ["5xx", "reset", "refused-stream"]
+                      },
+                      "circuitBreaker": {
+                        "enabled": true,
+                        "consecutiveErrors": 5,
+                        "interval": "60s",
+                        "baseEjectionTime": "30s",
+                        "maxEjectionPercent": 50
+                      }
+                    },
+                    "cache": {
+                      "enabled": true,
+                      "type": "redis",
+                      "redis": {
+                        "cluster": true,
+                        "nodes": [
+                          "redis-0.redis.svc.cluster.local:6379",
+                          "redis-1.redis.svc.cluster.local:6379",
+                          "redis-2.redis.svc.cluster.local:6379"
+                        ],
+                        "connectionPoolSize": 10,
+                        "connectTimeout": "5s",
+                        "commandTimeout": "3s"
+                      },
+                      "strategy": "semantic",
+                      "ttl": "3600s",
+                      "semanticSimilarityThreshold": 0.95,
+                      "maxCacheSize": "2GB"
+                    },
+                    "monitoring": {
+                      "metricsPrefix": "llm_edge_agent",
+                      "enableTracing": true,
+                      "enableMetrics": true,
+                      "sampleRate": 0.1
+                    },
+                    "security": {
+                      "authentication": {
+                        "enabled": true,
+                        "headerName": "x-api-key",
+                        "validateFormat": true
+                      },
+                      "rateLimiting": {
+                        "enabled": true,
+                        "requestsPerMinute": 100
+                      }
+                    },
+                    "features": {
+                      "costTracking": true,
+                      "auditLogging": true,
+                      "piiRedaction": true
+                    }
+                  }
+
+    # Patch 2: Configure cluster for LLM providers
+    - applyTo: CLUSTER
+      match:
+        context: SIDECAR_OUTBOUND
+        cluster:
+          service: "api.openai.com"
+      patch:
+        operation: MERGE
+        value:
+          connect_timeout: 60s
+          lb_policy: LEAST_REQUEST
+          circuit_breakers:
+            thresholds:
+              - max_connections: 1000
+                max_pending_requests: 1000
+                max_requests: 1000
+                max_retries: 3
+          outlier_detection:
+            consecutive_5xx: 5
+            interval: 60s
+            base_ejection_time: 30s
+            max_ejection_percent: 50
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: llm-provider-routing
+  namespace: istio-system
+spec:
+  hosts:
+    - "api.openai.com"
+    - "api.anthropic.com"
+    - "*.openai.azure.com"
+
+  http:
+    # Route for chat completions
+    - match:
+        - uri:
+            prefix: "/v1/chat/completions"
+        - uri:
+            prefix: "/v1/completions"
+      route:
+        - destination:
+            host: openai-service
+            subset: v1
+          weight: 50
+          headers:
+            request:
+              add:
+                x-llm-edge-agent: "true"
+                x-routing-strategy: "intelligent"
+        - destination:
+            host: anthropic-service
+            subset: v1
+          weight: 30
+        - destination:
+            host: azure-openai-service
+            subset: v1
+          weight: 20
+
+      retries:
+        attempts: 3
+        perTryTimeout: 30s
+        retryOn: "5xx,reset,refused-stream,retriable-status-codes"
+
+      timeout: 120s
+
+      headers:
+        request:
+          add:
+            x-request-id: "%REQ(X-REQUEST-ID)%"
+            x-b3-traceid: "%REQ(X-B3-TRACEID)%"
+            x-b3-spanid: "%REQ(X-B3-SPANID)%"
+        response:
+          add:
+            x-cache-status: "%CACHE_STATUS%"
+            x-provider-used: "%UPSTREAM_CLUSTER%"
+
+      # Fault injection for testing (disable in production)
+      # fault:
+      #   delay:
+      #     percentage:
+      #       value: 5.0
+      #     fixedDelay: 2s
+      #   abort:
+      #     percentage:
+      #       value: 1.0
+      #     httpStatus: 503
+
+    # Route for embeddings
+    - match:
+        - uri:
+            prefix: "/v1/embeddings"
+      route:
+        - destination:
+            host: openai-service
+            subset: v1
+      timeout: 60s
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: llm-providers-destination
+  namespace: istio-system
+spec:
+  host: "*.llm-providers.svc.cluster.local"
+
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1000
+      http:
+        http1MaxPendingRequests: 1000
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 1
+
+    loadBalancer:
+      simple: LEAST_REQUEST
+      localityLbSetting:
+        enabled: true
+
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 60s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+
+    tls:
+      mode: SIMPLE
+      sni: "*.openai.com"
+
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+      trafficPolicy:
+        connectionPool:
+          http:
+            h2UpgradePolicy: UPGRADE
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: openai-external
+  namespace: istio-system
+spec:
+  hosts:
+    - "api.openai.com"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: anthropic-external
+  namespace: istio-system
+spec:
+  hosts:
+    - "api.anthropic.com"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: llm-proxy-authz
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      llm-proxy: enabled
+
+  action: ALLOW
+
+  rules:
+    # Allow authenticated requests
+    - from:
+        - source:
+            requestPrincipals: ["*"]
+      to:
+        - operation:
+            methods: ["POST"]
+            paths:
+              - "/v1/chat/completions"
+              - "/v1/completions"
+              - "/v1/embeddings"
+      when:
+        - key: request.headers[x-api-key]
+          notValues: [""]
+
+    # Allow health checks
+    - to:
+        - operation:
+            methods: ["GET"]
+            paths: ["/health", "/ready", "/metrics"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: llm-proxy-mtls
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      llm-proxy: enabled
+  mtls:
+    mode: STRICT
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-edge-agent-wasm-plugin
+  namespace: istio-system
+data:
+  # This would contain the compiled WASM binary
+  # In practice, this would be managed differently (e.g., OCI registry)
+  plugin.wasm: |
+    # Binary content would go here
+    # Or reference to OCI image: oci://registry.example.com/llm-edge-agent-wasm:v1.0.0
+
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: llm-proxy-telemetry
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      llm-proxy: enabled
+
+  # Tracing configuration
+  tracing:
+    - providers:
+        - name: "jaeger"
+      randomSamplingPercentage: 10.0
+      customTags:
+        llm.provider:
+          header:
+            name: "x-provider-used"
+        llm.model:
+          header:
+            name: "x-model-used"
+        llm.cache.hit:
+          header:
+            name: "x-cache-status"
+
+  # Metrics configuration
+  metrics:
+    - providers:
+        - name: "prometheus"
+      overrides:
+        - match:
+            metric: REQUEST_COUNT
+          tagOverrides:
+            llm_provider:
+              value: "request.headers['x-provider-used']"
+            llm_model:
+              value: "request.headers['x-model-used']"
+        - match:
+            metric: REQUEST_DURATION
+          tagOverrides:
+            llm_provider:
+              value: "request.headers['x-provider-used']"
+
+  # Access logging
+  accessLogging:
+    - providers:
+        - name: "envoy"
+      filter:
+        expression: "response.code >= 400"

@@ -1,0 +1,151 @@
+---
+# Redis StatefulSet with 3 nodes for high availability
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: llm-edge-production
+  labels:
+    app: redis
+    tier: cache
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  clusterIP: None
+  selector:
+    app: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-1
+  namespace: llm-edge-production
+  labels:
+    app: redis
+    instance: redis-1
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  selector:
+    app: redis
+    statefulset.kubernetes.io/pod-name: redis-0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-2
+  namespace: llm-edge-production
+  labels:
+    app: redis
+    instance: redis-2
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  selector:
+    app: redis
+    statefulset.kubernetes.io/pod-name: redis-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-3
+  namespace: llm-edge-production
+  labels:
+    app: redis
+    instance: redis-3
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: client
+  selector:
+    app: redis
+    statefulset.kubernetes.io/pod-name: redis-2
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: llm-edge-production
+spec:
+  serviceName: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: client
+        command:
+        - redis-server
+        args:
+        - --appendonly
+        - "yes"
+        - --appendfsync
+        - everysec
+        - --maxmemory
+        - 2gb
+        - --maxmemory-policy
+        - allkeys-lru
+        - --save
+        - "900 1"
+        - --save
+        - "300 10"
+        - --save
+        - "60 10000"
+        - --loglevel
+        - notice
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+          failureThreshold: 3
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi

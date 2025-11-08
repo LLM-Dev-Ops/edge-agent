@@ -1,0 +1,265 @@
+version: '3.8'
+
+# LLM Edge Agent - Production-Grade Infrastructure Stack
+# Includes: Redis Cluster, Prometheus, Grafana, Jaeger
+# Enterprise-ready with persistence, high availability, and monitoring
+
+networks:
+  llm-edge-network:
+    driver: bridge
+
+volumes:
+  redis-1-data:
+  redis-2-data:
+  redis-3-data:
+  prometheus-data:
+  grafana-data:
+  jaeger-data:
+
+services:
+  # ============================================================================
+  # LLM Edge Agent - Main Application
+  # ============================================================================
+  llm-edge-agent:
+    image: llm-edge-agent:latest
+    container_name: llm-edge-agent
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"    # HTTP server
+      - "9090:9090"    # Metrics endpoint
+    environment:
+      # Server Configuration
+      - HOST=0.0.0.0
+      - PORT=8080
+      - METRICS_PORT=9090
+
+      # Provider API Keys (set via .env file or environment)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+      # Redis Cluster Configuration
+      - ENABLE_L2_CACHE=true
+      - REDIS_URL=redis://redis-1:6379
+      - REDIS_CLUSTER_NODES=redis-1:6379,redis-2:6379,redis-3:6379
+      - L1_CACHE_SIZE=1000
+      - L1_TTL_SECONDS=300
+      - L2_TTL_SECONDS=3600
+
+      # Observability
+      - RUST_LOG=info,llm_edge_agent=debug
+      - ENABLE_TRACING=true
+      - OTLP_ENDPOINT=http://jaeger:4317
+      - ENABLE_METRICS=true
+
+      # Performance Tuning
+      - TOKIO_WORKER_THREADS=8
+    depends_on:
+      - redis-1
+      - redis-2
+      - redis-3
+      - prometheus
+      - jaeger
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+
+  # ============================================================================
+  # Redis Cluster (3 nodes for high availability)
+  # ============================================================================
+  redis-1:
+    image: redis:7-alpine
+    container_name: redis-1
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --loglevel notice
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-1-data:/data
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-2:
+    image: redis:7-alpine
+    container_name: redis-2
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --loglevel notice
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-2-data:/data
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-3:
+    image: redis:7-alpine
+    container_name: redis-3
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --loglevel notice
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-3-data:/data
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # Prometheus - Metrics Collection
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # Grafana - Metrics Visualization
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infrastructure/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # Jaeger - Distributed Tracing
+  # ============================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "14250:14250"  # Model proto
+      - "14268:14268"  # Jaeger thrift
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    volumes:
+      - jaeger-data:/badger
+    networks:
+      - llm-edge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # Redis Commander - Redis Management UI (Optional)
+  # ============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=redis-1:redis-1:6379,redis-2:redis-2:6379,redis-3:redis-3:6379
+    depends_on:
+      - redis-1
+      - redis-2
+      - redis-3
+    networks:
+      - llm-edge-network
+    restart: unless-stopped

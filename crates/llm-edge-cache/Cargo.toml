@@ -1,0 +1,41 @@
+[package]
+name = "llm-edge-cache"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Multi-tier caching system (L1/L2/L3) for LLM Edge Agent"
+
+[dependencies]
+# Caching
+moka.workspace = true
+redis.workspace = true
+
+# Async Runtime
+tokio.workspace = true
+futures.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Hashing
+sha2 = "0.10"
+hex = "0.4"
+
+# Observability
+tracing.workspace = true
+metrics.workspace = true
+
+# Error Handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Utilities
+chrono.workspace = true
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = { version = "0.5", features = ["async_tokio"] }

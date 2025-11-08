@@ -1,0 +1,36 @@
+# Performance Profiling Configuration
+# Used with cargo-profiling tools
+
+[profile.release]
+debug = true
+lto = "thin"
+codegen-units = 16
+
+[profile.bench]
+debug = true
+lto = "thin"
+
+# Profiling targets
+[[profiling]]
+name = "cpu-profiling"
+tool = "flamegraph"
+duration = "60s"
+output = "performance-reports/cpu-flamegraph.svg"
+
+[[profiling]]
+name = "memory-profiling"
+tool = "heaptrack"
+duration = "120s"
+output = "performance-reports/memory-profile.txt"
+
+[[profiling]]
+name = "cache-profiling"
+tool = "valgrind"
+subcommand = "cachegrind"
+output = "performance-reports/cache-profile.txt"
+
+# Benchmark configuration
+[benchmarks]
+cache_operations = true
+routing_decisions = true
+provider_requests = false  # Requires live API keys

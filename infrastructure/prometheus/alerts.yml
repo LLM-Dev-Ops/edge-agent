@@ -1,0 +1,150 @@
+# Prometheus Alerting Rules for LLM Edge Agent
+# Enterprise-grade alerts for production monitoring
+
+groups:
+  - name: llm_edge_agent_critical
+    interval: 30s
+    rules:
+      # Service is down
+      - alert: LLMEdgeAgentDown
+        expr: up{job="llm-edge-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "LLM Edge Agent is down"
+          description: "LLM Edge Agent has been down for more than 1 minute on {{ $labels.instance }}"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: (rate(llm_edge_requests_total{status=~"5.."}[5m]) / rate(llm_edge_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # All providers down
+      - alert: AllProvidersDown
+        expr: sum(llm_edge_provider_health) == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: providers
+        annotations:
+          summary: "All LLM providers are down"
+          description: "No healthy providers available for {{ $labels.instance }}"
+
+  - name: llm_edge_agent_warning
+    interval: 1m
+    rules:
+      # High latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(llm_edge_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High request latency detected"
+          description: "P95 latency is {{ $value }}s on {{ $labels.instance }}"
+
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: (sum(rate(llm_edge_cache_hits_total[10m])) / (sum(rate(llm_edge_cache_hits_total[10m])) + sum(rate(llm_edge_cache_misses_total[10m])))) < 0.6
+        for: 15m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (target: >60%)"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: llm_edge_memory_bytes / 1024 / 1024 / 1024 > 3.5
+        for: 10m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize }}GB on {{ $labels.instance }}"
+
+      # Circuit breaker open
+      - alert: CircuitBreakerOpen
+        expr: llm_edge_circuit_breaker_state{state="open"} == 1
+        for: 2m
+        labels:
+          severity: warning
+          component: resilience
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker for {{ $labels.provider }} is open on {{ $labels.instance }}"
+
+  - name: llm_edge_agent_cost
+    interval: 5m
+    rules:
+      # High daily cost
+      - alert: HighDailyCost
+        expr: increase(llm_edge_cost_usd_total[24h]) > 100
+        for: 1h
+        labels:
+          severity: warning
+          component: cost
+        annotations:
+          summary: "High daily cost detected"
+          description: "Daily cost is ${{ $value | humanize }} (threshold: $100)"
+
+      # Unexpected cost spike
+      - alert: CostSpike
+        expr: (rate(llm_edge_cost_usd_total[1h]) / rate(llm_edge_cost_usd_total[1h] offset 1d)) > 1.5
+        for: 30m
+        labels:
+          severity: info
+          component: cost
+        annotations:
+          summary: "Cost spike detected"
+          description: "Cost increased by {{ $value | humanizePercentage }} compared to yesterday"
+
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Redis instance is down"
+          description: "Redis instance {{ $labels.instance }} has been down for more than 1 minute"
+
+  - name: resource_alerts
+    interval: 1m
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: llm_edge_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High connection count
+      - alert: HighConnectionCount
+        expr: llm_edge_active_connections > 900
+        for: 5m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High connection count"
+          description: "Active connections: {{ $value }} on {{ $labels.instance }} (limit: 1000)"

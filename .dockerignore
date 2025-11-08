@@ -1,0 +1,41 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Documentation
+*.md
+docs/
+plans/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node modules (if any)
+node_modules/
+
+# Test artifacts
+coverage/
+*.profraw
+*.profdata
+
+# OS
+.DS_Store
+Thumbs.db
