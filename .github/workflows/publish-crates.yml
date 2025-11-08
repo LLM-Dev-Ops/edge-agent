@@ -42,7 +42,7 @@ jobs:
 
       - name: Cargo login
         if: github.event.inputs.phase != 'dry-run'
-        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo login ${{ secrets.CRATES_SECRET }}
 
       - name: Publish ${{ matrix.crate }} (Dry Run)
         if: github.event.inputs.phase == 'dry-run'
@@ -87,7 +87,7 @@ jobs:
           toolchain: stable
 
       - name: Cargo login
-        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo login ${{ secrets.CRATES_SECRET }}
 
       - name: Publish ${{ matrix.crate }}
         run: cargo publish -p ${{ matrix.crate }}

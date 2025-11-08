@@ -8,8 +8,9 @@ Automates publishing of all LLM Edge Agent crates to crates.io.
 
 1. Add your crates.io API token as a GitHub secret:
    - Go to: https://github.com/globalbusinessadvisors/llm-edge-agent/settings/secrets/actions
-   - Create secret named: `CARGO_REGISTRY_TOKEN`
+   - Create secret named: `CRATES_SECRET`
    - Value: Your crates.io API token from https://crates.io/me
+   - ✅ Already configured
 
 ### Usage
 
@@ -57,7 +58,7 @@ OR
 - Wait longer for crates.io indexing (try 5 minutes)
 
 **"authentication failed"**
-- Check that `CARGO_REGISTRY_TOKEN` secret is set correctly
+- Check that `CRATES_SECRET` secret is set correctly
 - Verify token is valid at https://crates.io/me
 
 **"rate limit exceeded"**
