@@ -1,0 +1,124 @@
+name: Publish to crates.io
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Publishing phase to run'
+        required: true
+        type: choice
+        options:
+          - 'all'
+          - 'phase1'
+          - 'phase2'
+          - 'dry-run'
+        default: 'dry-run'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish-phase1:
+    name: Publish Phase 1 (Independent Crates)
+    runs-on: ubuntu-latest
+    if: github.event.inputs.phase == 'all' || github.event.inputs.phase == 'phase1' || github.event.inputs.phase == 'dry-run'
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - llm-edge-providers
+          - llm-edge-cache
+          - llm-edge-monitoring
+          - llm-edge-security
+          - llm-edge-proxy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cargo login
+        if: github.event.inputs.phase != 'dry-run'
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish ${{ matrix.crate }} (Dry Run)
+        if: github.event.inputs.phase == 'dry-run'
+        run: cargo publish --dry-run -p ${{ matrix.crate }}
+
+      - name: Publish ${{ matrix.crate }}
+        if: github.event.inputs.phase != 'dry-run'
+        run: cargo publish -p ${{ matrix.crate }}
+
+      - name: Wait for crates.io indexing
+        if: github.event.inputs.phase != 'dry-run'
+        run: sleep 30
+
+  wait-for-indexing:
+    name: Wait for crates.io indexing
+    runs-on: ubuntu-latest
+    needs: publish-phase1
+    if: github.event.inputs.phase == 'all'
+    steps:
+      - name: Wait 3 minutes for full indexing
+        run: sleep 180
+
+  publish-phase2:
+    name: Publish Phase 2 (Dependent Crates)
+    runs-on: ubuntu-latest
+    needs: wait-for-indexing
+    if: github.event.inputs.phase == 'all' || github.event.inputs.phase == 'phase2'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        crate:
+          - llm-edge-routing
+          - llm-edge-agent
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cargo login
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish ${{ matrix.crate }}
+        run: cargo publish -p ${{ matrix.crate }}
+
+      - name: Wait for crates.io indexing
+        run: sleep 30
+
+  verify-publication:
+    name: Verify Publication
+    runs-on: ubuntu-latest
+    needs: [publish-phase1, publish-phase2]
+    if: always() && (github.event.inputs.phase == 'all' || github.event.inputs.phase == 'phase1' || github.event.inputs.phase == 'phase2')
+    steps:
+      - name: Check publication status
+        run: |
+          echo "🎉 Publication workflow completed!"
+          echo ""
+          echo "Verify your crates at:"
+          echo "- https://crates.io/crates/llm-edge-providers"
+          echo "- https://crates.io/crates/llm-edge-cache"
+          echo "- https://crates.io/crates/llm-edge-monitoring"
+          echo "- https://crates.io/crates/llm-edge-security"
+          echo "- https://crates.io/crates/llm-edge-proxy"
+          echo "- https://crates.io/crates/llm-edge-routing"
+          echo "- https://crates.io/crates/llm-edge-agent"
+          echo ""
+          echo "Check documentation builds at:"
+          echo "- https://docs.rs/llm-edge-providers"
+          echo "- https://docs.rs/llm-edge-cache"
+          echo "- https://docs.rs/llm-edge-monitoring"
+          echo "- https://docs.rs/llm-edge-security"
+          echo "- https://docs.rs/llm-edge-proxy"
+          echo "- https://docs.rs/llm-edge-routing"
+          echo "- https://docs.rs/llm-edge-agent"
