@@ -132,7 +132,10 @@ mod tests {
         let key1 = generate_cache_key(&req1);
         let key2 = generate_cache_key(&req2);
 
-        assert_eq!(key1, key2, "Identical requests should produce identical keys");
+        assert_eq!(
+            key1, key2,
+            "Identical requests should produce identical keys"
+        );
     }
 
     #[test]
@@ -143,7 +146,10 @@ mod tests {
         let key1 = generate_cache_key(&req1);
         let key2 = generate_cache_key(&req2);
 
-        assert_ne!(key1, key2, "Different prompts should produce different keys");
+        assert_ne!(
+            key1, key2,
+            "Different prompts should produce different keys"
+        );
     }
 
     #[test]
@@ -174,20 +180,21 @@ mod tests {
     #[test]
     fn test_cache_key_parameter_order_independence() {
         let mut req1 = CacheableRequest::new("gpt-4", "Hello");
-        req1.parameters.insert("param_a".to_string(), serde_json::json!("value1"));
-        req1.parameters.insert("param_b".to_string(), serde_json::json!("value2"));
+        req1.parameters
+            .insert("param_a".to_string(), serde_json::json!("value1"));
+        req1.parameters
+            .insert("param_b".to_string(), serde_json::json!("value2"));
 
         let mut req2 = CacheableRequest::new("gpt-4", "Hello");
-        req2.parameters.insert("param_b".to_string(), serde_json::json!("value2"));
-        req2.parameters.insert("param_a".to_string(), serde_json::json!("value1"));
+        req2.parameters
+            .insert("param_b".to_string(), serde_json::json!("value2"));
+        req2.parameters
+            .insert("param_a".to_string(), serde_json::json!("value1"));
 
         let key1 = generate_cache_key(&req1);
         let key2 = generate_cache_key(&req2);
 
-        assert_eq!(
-            key1, key2,
-            "Parameter order should not affect cache key"
-        );
+        assert_eq!(key1, key2, "Parameter order should not affect cache key");
     }
 
     #[test]

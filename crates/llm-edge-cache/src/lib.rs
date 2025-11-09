@@ -343,7 +343,9 @@ mod tests {
         assert!(matches!(result, CacheLookupResult::Miss));
 
         // Store value
-        cache.store(&request, create_test_response("Test response")).await;
+        cache
+            .store(&request, create_test_response("Test response"))
+            .await;
 
         // Should hit L1 now
         let result = cache.lookup(&request).await;

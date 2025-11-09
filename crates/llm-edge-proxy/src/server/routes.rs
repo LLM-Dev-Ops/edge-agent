@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tracing::{info, instrument};
 
-use crate::Config;
 use crate::error::ProxyResult;
+use crate::Config;
 
 /// Health check response
 #[derive(Serialize)]
@@ -25,7 +25,7 @@ pub struct HealthResponse {
 #[instrument(name = "health_check")]
 pub async fn health_check() -> Json<HealthResponse> {
     info!("Health check requested");
-    
+
     Json(HealthResponse {
         status: "healthy".to_string(),
         timestamp: chrono::Utc::now().to_rfc3339(),
@@ -40,7 +40,7 @@ pub async fn readiness_check() -> Json<HealthResponse> {
     // - Database connectivity
     // - Cache availability
     // - Downstream service health
-    
+
     Json(HealthResponse {
         status: "ready".to_string(),
         timestamp: chrono::Utc::now().to_rfc3339(),

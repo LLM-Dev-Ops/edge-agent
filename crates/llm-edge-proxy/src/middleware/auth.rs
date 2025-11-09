@@ -9,8 +9,8 @@ use axum::{
 use sha2::{Digest, Sha256};
 use tracing::{debug, warn};
 
-use crate::Config;
 use crate::error::ProxyError;
+use crate::Config;
 
 const API_KEY_HEADER: &str = "x-api-key";
 const BEARER_PREFIX: &str = "Bearer ";
@@ -38,9 +38,7 @@ pub async fn auth_middleware(
     let path = request.uri().path();
 
     // Allow health and metrics endpoints without auth
-    if !config.auth.require_auth_for_health
-        && (path.starts_with("/health") || path == "/metrics")
-    {
+    if !config.auth.require_auth_for_health && (path.starts_with("/health") || path == "/metrics") {
         debug!(path = %path, "Public endpoint, skipping auth");
         return Ok(next.run(request).await);
     }
@@ -54,9 +52,7 @@ pub async fn auth_middleware(
             path = %path,
             "Invalid API key attempted"
         );
-        return Err(ProxyError::Authentication(
-            "Invalid API key".to_string(),
-        ));
+        return Err(ProxyError::Authentication("Invalid API key".to_string()));
     }
 
     debug!(path = %path, "Authentication successful");
@@ -146,7 +142,7 @@ mod tests {
         let key = "secret-key";
         let hashed = hash_api_key(key);
         let valid_keys = vec![hashed];
-        
+
         assert!(validate_api_key(key, &valid_keys));
         assert!(!validate_api_key("wrong-key", &valid_keys));
     }

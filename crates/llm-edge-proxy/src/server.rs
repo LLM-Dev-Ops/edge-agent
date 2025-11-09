@@ -14,11 +14,7 @@ use axum::{
     Router,
 };
 use std::net::SocketAddr;
-use tower_http::{
-    compression::CompressionLayer,
-    cors::CorsLayer,
-    trace::TraceLayer,
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 
 /// Build the Axum application with all middleware and routes
 pub async fn build_app(config: Config) -> Result<Router, ProxyError> {
@@ -28,29 +24,23 @@ pub async fn build_app(config: Config) -> Result<Router, ProxyError> {
         .route("/health", get(routes::health_check))
         .route("/health/ready", get(routes::readiness_check))
         .route("/health/live", get(routes::liveness_check))
-
         // Metrics endpoint (no auth required)
         .route("/metrics", get(routes::metrics))
-
         // Protected proxy endpoints
         .route("/v1/chat/completions", post(routes::chat_completions))
         .route("/v1/completions", post(routes::completions))
-
         // NOTE: Rate limiting temporarily disabled due to tower_governor API compatibility
         // TODO: Re-enable rate limiting once tower_governor integration is fixed
         // .layer(middleware::create_rate_limiter(&config))
-
         // Apply authentication middleware
         .layer(axum::middleware::from_fn_with_state(
             config.clone(),
             middleware::auth_middleware,
         ))
-
         // Apply tower-http middleware
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(CorsLayer::permissive())
-
         // Add shared state
         .with_state(config);
 

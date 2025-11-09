@@ -4,8 +4,7 @@ use axum::{
     Router,
 };
 use llm_edge_agent::{
-    check_system_health, initialize_app_state, AppConfig,
-    handle_chat_completions,
+    check_system_health, handle_chat_completions, initialize_app_state, AppConfig,
 };
 use metrics_exporter_prometheus::PrometheusBuilder;
 use std::net::SocketAddr;
@@ -18,8 +17,9 @@ async fn main() -> Result<()> {
     // Initialize tracing/logging
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "llm_edge_agent=info,llm_edge_cache=info,tower_http=debug".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                "llm_edge_agent=info,llm_edge_cache=info,tower_http=debug".into()
+            }),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -36,7 +36,10 @@ async fn main() -> Result<()> {
 
     // Initialize Prometheus metrics exporter
     if config.enable_metrics {
-        info!("Initializing Prometheus metrics exporter on port {}", config.metrics_port);
+        info!(
+            "Initializing Prometheus metrics exporter on port {}",
+            config.metrics_port
+        );
         PrometheusBuilder::new()
             .install()
             .expect("Failed to install Prometheus exporter");
@@ -78,13 +81,10 @@ async fn main() -> Result<()> {
         .route("/health", get(health_handler))
         .route("/health/ready", get(readiness_handler))
         .route("/health/live", get(liveness_handler))
-
         // Metrics endpoint
         .route("/metrics", get(metrics_handler))
-
         // Main proxy endpoints (OpenAI-compatible)
         .route("/v1/chat/completions", post(handle_chat_completions))
-
         // Share application state with handlers
         .with_state(app_state.clone());
 

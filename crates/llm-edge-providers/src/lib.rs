@@ -7,15 +7,15 @@
 //! - AWS Bedrock
 //! - Azure OpenAI
 
-pub mod types;
+pub mod adapter;
+pub mod anthropic;
 pub mod error;
 pub mod openai;
-pub mod anthropic;
-pub mod adapter;
+pub mod types;
 
-pub use error::{ProviderError, ProviderResult};
-pub use types::{UnifiedRequest, UnifiedResponse, Message, Usage};
 pub use adapter::LLMProvider;
+pub use error::{ProviderError, ProviderResult};
+pub use types::{Message, UnifiedRequest, UnifiedResponse, Usage};
 
 #[cfg(test)]
 mod tests {

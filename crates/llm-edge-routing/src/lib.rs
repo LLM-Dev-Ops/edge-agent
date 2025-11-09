@@ -7,12 +7,12 @@
 //! - Circuit breakers
 //! - Fallback chains
 
-pub mod strategy;
 pub mod circuit_breaker;
 pub mod error;
+pub mod strategy;
 
 pub use error::{RoutingError, RoutingResult};
-pub use strategy::{RoutingStrategy, RoutingDecision};
+pub use strategy::{RoutingDecision, RoutingStrategy};
 
 #[cfg(test)]
 mod tests {

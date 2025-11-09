@@ -7,8 +7,8 @@
 //! - Observability (Metrics, Tracing, Logging)
 //! - Security (Auth, PII detection)
 
-use llm_edge_cache::{CacheManager, l2::L2Config};
-use llm_edge_providers::{LLMProvider, openai::OpenAIAdapter, anthropic::AnthropicAdapter};
+use llm_edge_cache::{l2::L2Config, CacheManager};
+use llm_edge_providers::{anthropic::AnthropicAdapter, openai::OpenAIAdapter, LLMProvider};
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -145,21 +145,23 @@ pub async fn initialize_app_state(config: AppConfig) -> anyhow::Result<AppState>
     // Step 2: Initialize provider adapters
     info!("Initializing provider adapters");
 
-    let openai_provider: Option<Arc<dyn LLMProvider>> = if let Some(ref api_key) = config.openai_api_key {
-        info!("Initializing OpenAI provider");
-        Some(Arc::new(OpenAIAdapter::new(api_key.clone())))
-    } else {
-        warn!("OpenAI API key not provided, OpenAI provider will not be available");
-        None
-    };
+    let openai_provider: Option<Arc<dyn LLMProvider>> =
+        if let Some(ref api_key) = config.openai_api_key {
+            info!("Initializing OpenAI provider");
+            Some(Arc::new(OpenAIAdapter::new(api_key.clone())))
+        } else {
+            warn!("OpenAI API key not provided, OpenAI provider will not be available");
+            None
+        };
 
-    let anthropic_provider: Option<Arc<dyn LLMProvider>> = if let Some(ref api_key) = config.anthropic_api_key {
-        info!("Initializing Anthropic provider");
-        Some(Arc::new(AnthropicAdapter::new(api_key.clone())))
-    } else {
-        warn!("Anthropic API key not provided, Anthropic provider will not be available");
-        None
-    };
+    let anthropic_provider: Option<Arc<dyn LLMProvider>> =
+        if let Some(ref api_key) = config.anthropic_api_key {
+            info!("Initializing Anthropic provider");
+            Some(Arc::new(AnthropicAdapter::new(api_key.clone())))
+        } else {
+            warn!("Anthropic API key not provided, Anthropic provider will not be available");
+            None
+        };
 
     // Verify at least one provider is available
     if openai_provider.is_none() && anthropic_provider.is_none() {
@@ -185,13 +187,19 @@ pub async fn check_system_health(state: &AppState) -> SystemHealthStatus {
     let cache_health = state.cache_manager.health_check().await;
 
     let openai_healthy = if let Some(ref provider) = state.openai_provider {
-        matches!(provider.health().await, llm_edge_providers::adapter::HealthStatus::Healthy)
+        matches!(
+            provider.health().await,
+            llm_edge_providers::adapter::HealthStatus::Healthy
+        )
     } else {
         false
     };
 
     let anthropic_healthy = if let Some(ref provider) = state.anthropic_provider {
-        matches!(provider.health().await, llm_edge_providers::adapter::HealthStatus::Healthy)
+        matches!(
+            provider.health().await,
+            llm_edge_providers::adapter::HealthStatus::Healthy
+        )
     } else {
         false
     };
@@ -225,8 +233,8 @@ impl SystemHealthStatus {
         // 1. L1 cache is healthy (always should be)
         // 2. L2 cache is healthy (if configured)
         // 3. At least one provider is healthy
-        let cache_healthy = self.cache_l1_healthy
-            && (!self.cache_l2_configured || self.cache_l2_healthy);
+        let cache_healthy =
+            self.cache_l1_healthy && (!self.cache_l2_configured || self.cache_l2_healthy);
 
         let provider_healthy = self.openai_healthy || self.anthropic_healthy;
 

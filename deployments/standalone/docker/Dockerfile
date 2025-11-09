@@ -1,55 +1,46 @@
-# Multi-stage Dockerfile for LLM-Edge-Agent (Standalone)
+# Multi-stage Dockerfile for LLM Edge Agent (Rust)
 
 # Stage 1: Build
-FROM node:18-alpine AS builder
+FROM rust:1.75-slim AS builder
 
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    git
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
 
-# Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
-
-# Copy source code
-COPY src/ ./src/
-
-# Build TypeScript
-RUN npm run build
+# Build release binary
+RUN cargo build --release --package llm-edge-agent
 
 # Stage 2: Production
-FROM node:18-alpine
+FROM debian:bookworm-slim
 
-# Install security updates
-RUN apk upgrade --no-cache && \
-    apk add --no-cache \
+# Install runtime dependencies and security updates
+RUN apt-get update && apt-get install -y \
     ca-certificates \
-    tini \
-    curl
+    libssl3 \
+    curl \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1001 -S llm-agent && \
-    adduser -u 1001 -S llm-agent -G llm-agent
+RUN groupadd -g 1001 llm-agent && \
+    useradd -u 1001 -g llm-agent -s /bin/bash -m llm-agent
 
 WORKDIR /app
 
-# Copy built application from builder
-COPY --from=builder --chown=llm-agent:llm-agent /app/node_modules ./node_modules
-COPY --from=builder --chown=llm-agent:llm-agent /app/dist ./dist
-COPY --from=builder --chown=llm-agent:llm-agent /app/package*.json ./
+# Copy built binary from builder
+COPY --from=builder /app/target/release/llm-edge-agent /usr/local/bin/llm-edge-agent
 
 # Create necessary directories
 RUN mkdir -p /var/log/llm-edge-agent /etc/llm-edge-agent /cache && \
-    chown -R llm-agent:llm-agent /var/log/llm-edge-agent /etc/llm-edge-agent /cache
+    chown -R llm-agent:llm-agent /var/log/llm-edge-agent /etc/llm-edge-agent /cache /app
 
 # Switch to non-root user
 USER llm-agent
@@ -59,17 +50,25 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose ports
+# 8080: Main HTTP proxy port
+# 9090: Metrics port
 EXPOSE 8080 9090
 
-# Use tini for proper signal handling
-ENTRYPOINT ["/sbin/tini", "--"]
+# Environment variables (can be overridden)
+ENV SERVER_ADDRESS=0.0.0.0:8080 \
+    LOG_LEVEL=info \
+    ENABLE_METRICS=true \
+    METRICS_PORT=9090 \
+    AUTH_ENABLED=true \
+    RATE_LIMIT_ENABLED=true
 
 # Start application
-CMD ["node", "dist/index.js"]
+CMD ["llm-edge-agent"]
 
 # Labels
-LABEL org.opencontainers.image.title="LLM-Edge-Agent" \
-      org.opencontainers.image.description="Intelligent proxy for LLM API requests" \
-      org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.vendor="LLM-Edge-Agent" \
-      org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.title="LLM Edge Agent" \
+      org.opencontainers.image.description="High-performance LLM intercepting proxy" \
+      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.vendor="Global Business Advisors" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/globalbusinessadvisors/llm-edge-agent"

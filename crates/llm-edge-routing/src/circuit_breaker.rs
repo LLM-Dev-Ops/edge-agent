@@ -8,9 +8,9 @@ use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CircuitState {
-    Closed,     // Normal operation
-    Open,       // Circuit open, fail fast
-    HalfOpen,   // Testing if service recovered
+    Closed,   // Normal operation
+    Open,     // Circuit open, fail fast
+    HalfOpen, // Testing if service recovered
 }
 
 pub struct CircuitBreaker {

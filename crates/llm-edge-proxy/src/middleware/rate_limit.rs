@@ -12,7 +12,9 @@ use crate::Config;
 ///
 /// NOTE: Currently returns a no-op layer. Rate limiting should be implemented
 /// using tower_governor once the API compatibility issues are resolved.
-pub fn create_rate_limiter(_config: &Config) -> tower::util::BoxCloneService<
+pub fn create_rate_limiter(
+    _config: &Config,
+) -> tower::util::BoxCloneService<
     axum::http::Request<axum::body::Body>,
     axum::response::Response,
     std::convert::Infallible,

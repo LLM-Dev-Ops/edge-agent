@@ -108,22 +108,26 @@ impl L2Cache {
         match result {
             Ok(Ok(Some(value))) => {
                 debug!("L2 cache HIT: key={}", &key[..16.min(key.len())]);
-                self.metrics.record_operation(CacheTier::L2, CacheOperation::Hit);
+                self.metrics
+                    .record_operation(CacheTier::L2, CacheOperation::Hit);
                 Ok(Some(value))
             }
             Ok(Ok(None)) => {
                 debug!("L2 cache MISS: key={}", &key[..16.min(key.len())]);
-                self.metrics.record_operation(CacheTier::L2, CacheOperation::Miss);
+                self.metrics
+                    .record_operation(CacheTier::L2, CacheOperation::Miss);
                 Ok(None)
             }
             Ok(Err(e)) => {
                 warn!("L2 cache GET error: {}", e);
-                self.metrics.record_operation(CacheTier::L2, CacheOperation::Miss);
+                self.metrics
+                    .record_operation(CacheTier::L2, CacheOperation::Miss);
                 Err(e)
             }
             Err(_) => {
                 warn!("L2 cache GET timeout");
-                self.metrics.record_operation(CacheTier::L2, CacheOperation::Miss);
+                self.metrics
+                    .record_operation(CacheTier::L2, CacheOperation::Miss);
                 Err(L2Error::Timeout)
             }
         }
@@ -173,7 +177,8 @@ impl L2Cache {
         match result {
             Ok(Ok(())) => {
                 debug!("L2 cache WRITE: key={}", &key[..16.min(key.len())]);
-                self.metrics.record_operation(CacheTier::L2, CacheOperation::Write);
+                self.metrics
+                    .record_operation(CacheTier::L2, CacheOperation::Write);
                 Ok(())
             }
             Ok(Err(e)) => {
@@ -209,7 +214,8 @@ impl L2Cache {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
 
         let _: () = conn.del(&prefixed_key).await?;
-        self.metrics.record_operation(CacheTier::L2, CacheOperation::Delete);
+        self.metrics
+            .record_operation(CacheTier::L2, CacheOperation::Delete);
 
         Ok(())
     }
@@ -236,7 +242,8 @@ impl L2Cache {
     pub async fn health_check(&self) -> bool {
         match self.client.get_multiplexed_async_connection().await {
             Ok(mut conn) => {
-                let result: Result<String, RedisError> = redis::cmd("PING").query_async(&mut conn).await;
+                let result: Result<String, RedisError> =
+                    redis::cmd("PING").query_async(&mut conn).await;
                 result.is_ok()
             }
             Err(_) => false,
@@ -267,10 +274,7 @@ impl L2Cache {
 ///
 /// If Redis is unavailable, returns None and logs a warning.
 /// This allows the application to continue with L1-only caching.
-pub async fn create_l2_cache_optional(
-    config: L2Config,
-    metrics: CacheMetrics,
-) -> Option<L2Cache> {
+pub async fn create_l2_cache_optional(config: L2Config, metrics: CacheMetrics) -> Option<L2Cache> {
     match L2Cache::with_config(config, metrics).await {
         Ok(cache) => Some(cache),
         Err(e) => {
@@ -363,7 +367,9 @@ mod tests {
     #[ignore] // Requires Redis
     async fn test_l2_metrics_recording() {
         let metrics = CacheMetrics::new();
-        let cache = L2Cache::new(metrics.clone()).await.expect("Redis not available");
+        let cache = L2Cache::new(metrics.clone())
+            .await
+            .expect("Redis not available");
 
         let key = "test_metrics_key".to_string();
 
@@ -372,7 +378,10 @@ mod tests {
         assert_eq!(metrics.snapshot().l2_misses, 1);
 
         // Write
-        cache.set(key.clone(), create_test_response("test")).await.unwrap();
+        cache
+            .set(key.clone(), create_test_response("test"))
+            .await
+            .unwrap();
         assert_eq!(metrics.snapshot().l2_writes, 1);
 
         // Hit
@@ -391,10 +400,15 @@ mod tests {
             key_prefix: "test_prefix:".to_string(),
             ..Default::default()
         };
-        let cache = L2Cache::with_config(config, metrics).await.expect("Redis not available");
+        let cache = L2Cache::with_config(config, metrics)
+            .await
+            .expect("Redis not available");
 
         let key = "my_key".to_string();
-        cache.set(key.clone(), create_test_response("test")).await.unwrap();
+        cache
+            .set(key.clone(), create_test_response("test"))
+            .await
+            .unwrap();
 
         // The actual Redis key should be prefixed
         let prefixed = cache.prefixed_key(&key);

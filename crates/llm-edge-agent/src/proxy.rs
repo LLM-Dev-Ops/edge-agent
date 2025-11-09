@@ -96,7 +96,10 @@ impl IntoResponse for ProxyError {
         let (status, message) = match self {
             ProxyError::ValidationError(msg) => (StatusCode::BAD_REQUEST, msg),
             ProxyError::ProviderError(msg) => (StatusCode::BAD_GATEWAY, msg),
-            ProxyError::CacheError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Cache error: {}", msg)),
+            ProxyError::CacheError(msg) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Cache error: {}", msg),
+            ),
             ProxyError::InternalError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
 
@@ -189,19 +192,16 @@ pub async fn handle_chat_completions(
     );
 
     let provider_start = Instant::now();
-    let provider_response = provider
-        .send(unified_request)
-        .await
-        .map_err(|e| {
-            error!(
-                request_id = %request_id,
-                provider = %provider_name,
-                error = %e,
-                "Provider request failed"
-            );
-            metrics::record_request_failure(&provider_name, &request.model, "provider_error");
-            ProxyError::ProviderError(format!("Provider error: {}", e))
-        })?;
+    let provider_response = provider.send(unified_request).await.map_err(|e| {
+        error!(
+            request_id = %request_id,
+            provider = %provider_name,
+            error = %e,
+            "Provider request failed"
+        );
+        metrics::record_request_failure(&provider_name, &request.model, "provider_error");
+        ProxyError::ProviderError(format!("Provider error: {}", e))
+    })?;
 
     let provider_latency = provider_start.elapsed().as_millis() as u64;
 
@@ -258,11 +258,15 @@ fn validate_request(request: &ChatCompletionRequest) -> Result<(), ProxyError> {
     }
 
     if request.messages.is_empty() {
-        return Err(ProxyError::ValidationError("Messages cannot be empty".to_string()));
+        return Err(ProxyError::ValidationError(
+            "Messages cannot be empty".to_string(),
+        ));
     }
 
     if request.stream {
-        return Err(ProxyError::ValidationError("Streaming is not yet supported".to_string()));
+        return Err(ProxyError::ValidationError(
+            "Streaming is not yet supported".to_string(),
+        ));
     }
 
     Ok(())
@@ -345,7 +349,9 @@ fn select_provider(
         return Ok((provider.clone(), "anthropic".to_string()));
     }
 
-    Err(ProxyError::InternalError("No providers configured".to_string()))
+    Err(ProxyError::InternalError(
+        "No providers configured".to_string(),
+    ))
 }
 
 /// Calculate the cost of a request
@@ -356,7 +362,8 @@ fn calculate_cost(
 ) -> Option<f64> {
     provider.get_pricing(model).map(|pricing| {
         let input_cost = (response.usage.prompt_tokens as f64 / 1000.0) * pricing.input_cost_per_1k;
-        let output_cost = (response.usage.completion_tokens as f64 / 1000.0) * pricing.output_cost_per_1k;
+        let output_cost =
+            (response.usage.completion_tokens as f64 / 1000.0) * pricing.output_cost_per_1k;
         input_cost + output_cost
     })
 }
@@ -383,7 +390,11 @@ fn build_response_from_cache(
         }],
         usage: Usage {
             prompt_tokens: cached.tokens.as_ref().map(|t| t.prompt_tokens).unwrap_or(0),
-            completion_tokens: cached.tokens.as_ref().map(|t| t.completion_tokens).unwrap_or(0),
+            completion_tokens: cached
+                .tokens
+                .as_ref()
+                .map(|t| t.completion_tokens)
+                .unwrap_or(0),
             total_tokens: cached.tokens.as_ref().map(|t| t.total_tokens).unwrap_or(0),
         },
         metadata: Some(ResponseMetadata {

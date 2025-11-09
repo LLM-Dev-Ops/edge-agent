@@ -6,9 +6,9 @@
 //! - Request/response logging
 //! - Cost tracking
 
+pub mod error;
 pub mod metrics;
 pub mod tracing;
-pub mod error;
 
 pub use error::{MonitoringError, MonitoringResult};
 

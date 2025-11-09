@@ -8,12 +8,12 @@
 //! - Input validation
 
 pub mod auth;
+pub mod error;
 pub mod pii;
 pub mod validation;
-pub mod error;
 
-pub use error::{SecurityError, SecurityResult};
 pub use auth::{ApiKeyAuth, JwtAuth};
+pub use error::{SecurityError, SecurityResult};
 pub use pii::PIIRedactor;
 
 #[cfg(test)]

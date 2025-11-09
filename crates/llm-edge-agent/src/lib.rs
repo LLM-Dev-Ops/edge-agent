@@ -12,5 +12,5 @@
 pub mod integration;
 pub mod proxy;
 
-pub use integration::{AppConfig, AppState, initialize_app_state, check_system_health};
+pub use integration::{check_system_health, initialize_app_state, AppConfig, AppState};
 pub use proxy::{handle_chat_completions, ChatCompletionRequest, ChatCompletionResponse};

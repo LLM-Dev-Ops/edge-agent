@@ -13,10 +13,8 @@ impl PIIRedactor {
     pub fn new() -> Self {
         Self {
             ssn_regex: Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap(),
-            email_regex: Regex::new(
-                r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
-            )
-            .unwrap(),
+            email_regex: Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
+                .unwrap(),
             credit_card_regex: Regex::new(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b").unwrap(),
         }
     }
@@ -26,7 +24,10 @@ impl PIIRedactor {
         let mut result = text.to_string();
 
         // Redact SSN
-        result = self.ssn_regex.replace_all(&result, "[SSN_REDACTED]").to_string();
+        result = self
+            .ssn_regex
+            .replace_all(&result, "[SSN_REDACTED]")
+            .to_string();
 
         // Redact email
         result = self

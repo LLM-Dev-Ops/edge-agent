@@ -17,7 +17,11 @@ pub enum RoutingStrategy {
     /// Route to the fastest provider (lowest latency)
     LatencyBased,
     /// Route based on multiple factors with weights
-    Hybrid { cost_weight: f64, latency_weight: f64, reliability_weight: f64 },
+    Hybrid {
+        cost_weight: f64,
+        latency_weight: f64,
+        reliability_weight: f64,
+    },
     /// Simple round-robin
     RoundRobin,
 }

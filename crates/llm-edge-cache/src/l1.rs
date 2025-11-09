@@ -96,10 +96,12 @@ impl L1Cache {
 
         if result.is_some() {
             debug!("L1 cache HIT: key={}", &key[..16.min(key.len())]);
-            self.metrics.record_operation(CacheTier::L1, CacheOperation::Hit);
+            self.metrics
+                .record_operation(CacheTier::L1, CacheOperation::Hit);
         } else {
             debug!("L1 cache MISS: key={}", &key[..16.min(key.len())]);
-            self.metrics.record_operation(CacheTier::L1, CacheOperation::Miss);
+            self.metrics
+                .record_operation(CacheTier::L1, CacheOperation::Miss);
         }
 
         result
@@ -115,7 +117,8 @@ impl L1Cache {
         debug!("L1 cache WRITE: key={}", &key[..16.min(key.len())]);
 
         self.cache.insert(key, Arc::new(value)).await;
-        self.metrics.record_operation(CacheTier::L1, CacheOperation::Write);
+        self.metrics
+            .record_operation(CacheTier::L1, CacheOperation::Write);
 
         // Update size metrics
         let size = self.cache.entry_count();
@@ -125,7 +128,8 @@ impl L1Cache {
     /// Remove a value from the cache
     pub async fn remove(&self, key: &str) {
         self.cache.invalidate(key).await;
-        self.metrics.record_operation(CacheTier::L1, CacheOperation::Delete);
+        self.metrics
+            .record_operation(CacheTier::L1, CacheOperation::Delete);
     }
 
     /// Clear all entries from the cache
@@ -224,9 +228,15 @@ mod tests {
         let cache = L1Cache::with_config(config, metrics);
 
         // Insert 3 items into cache with capacity of 2
-        cache.set("key1".to_string(), create_test_response("value1")).await;
-        cache.set("key2".to_string(), create_test_response("value2")).await;
-        cache.set("key3".to_string(), create_test_response("value3")).await;
+        cache
+            .set("key1".to_string(), create_test_response("value1"))
+            .await;
+        cache
+            .set("key2".to_string(), create_test_response("value2"))
+            .await;
+        cache
+            .set("key3".to_string(), create_test_response("value3"))
+            .await;
 
         // Allow Moka to process evictions
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -255,8 +265,12 @@ mod tests {
         let metrics = CacheMetrics::new();
         let cache = L1Cache::new(metrics);
 
-        cache.set("key1".to_string(), create_test_response("value1")).await;
-        cache.set("key2".to_string(), create_test_response("value2")).await;
+        cache
+            .set("key1".to_string(), create_test_response("value1"))
+            .await;
+        cache
+            .set("key2".to_string(), create_test_response("value2"))
+            .await;
 
         // Force Moka to process pending operations
         cache.cache.run_pending_tasks().await;
@@ -278,7 +292,9 @@ mod tests {
         };
         let cache = L1Cache::with_config(config, metrics);
 
-        cache.set("key1".to_string(), create_test_response("value1")).await;
+        cache
+            .set("key1".to_string(), create_test_response("value1"))
+            .await;
 
         // Force Moka to process pending operations
         cache.cache.run_pending_tasks().await;

@@ -5,8 +5,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 /// Initialize tracing with OpenTelemetry support
 pub fn init_tracing() -> Result<()> {
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     // Configure the tracing subscriber with JSON formatting
     let formatting_layer = tracing_subscriber::fmt::layer()

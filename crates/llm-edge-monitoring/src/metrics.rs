@@ -41,5 +41,9 @@ pub fn record_active_requests(count: usize) {
 
 /// Records provider health
 pub fn record_provider_health(provider: &str, is_healthy: bool) {
-    gauge!("llm_edge_provider_available", "provider" => provider.to_string()).set(if is_healthy { 1.0 } else { 0.0 });
+    gauge!("llm_edge_provider_available", "provider" => provider.to_string()).set(if is_healthy {
+        1.0
+    } else {
+        0.0
+    });
 }

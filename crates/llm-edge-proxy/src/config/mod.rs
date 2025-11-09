@@ -48,8 +48,7 @@ impl Config {
     /// Load configuration from environment variables
     pub fn from_env() -> anyhow::Result<Self> {
         let server = ServerConfig {
-            address: std::env::var("SERVER_ADDRESS")
-                .unwrap_or_else(|_| "0.0.0.0:8080".to_string()),
+            address: std::env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8080".to_string()),
             timeout_seconds: std::env::var("SERVER_TIMEOUT_SECONDS")
                 .unwrap_or_else(|_| "30".to_string())
                 .parse()?,
@@ -97,8 +96,7 @@ impl Config {
             enable_metrics: std::env::var("ENABLE_METRICS")
                 .unwrap_or_else(|_| "true".to_string())
                 .parse()?,
-            log_level: std::env::var("LOG_LEVEL")
-                .unwrap_or_else(|_| "info".to_string()),
+            log_level: std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
             otlp_endpoint: std::env::var("OTLP_ENDPOINT").ok(),
         };
 

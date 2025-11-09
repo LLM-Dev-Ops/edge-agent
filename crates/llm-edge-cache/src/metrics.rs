@@ -112,7 +112,8 @@ impl CacheMetrics {
         histogram!(
             "llm_edge_cache_latency_ms",
             "tier" => tier.as_str()
-        ).record(latency_ms);
+        )
+        .record(latency_ms);
     }
 
     /// Record a request (for overall metrics)
@@ -126,7 +127,8 @@ impl CacheMetrics {
         gauge!(
             "llm_edge_cache_size_entries",
             "tier" => tier.as_str()
-        ).set(size as f64);
+        )
+        .set(size as f64);
     }
 
     /// Update cache memory usage
@@ -134,7 +136,8 @@ impl CacheMetrics {
         gauge!(
             "llm_edge_cache_memory_bytes",
             "tier" => tier.as_str()
-        ).set(bytes as f64);
+        )
+        .set(bytes as f64);
     }
 
     /// Calculate L1 hit rate
@@ -298,13 +301,21 @@ mod tests {
         }
 
         let hit_rate = metrics.l1_hit_rate();
-        assert!((hit_rate - 0.7).abs() < 0.01, "Expected 70% hit rate, got {}", hit_rate);
+        assert!(
+            (hit_rate - 0.7).abs() < 0.01,
+            "Expected 70% hit rate, got {}",
+            hit_rate
+        );
     }
 
     #[test]
     fn test_empty_metrics_hit_rate() {
         let metrics = CacheMetrics::new();
-        assert_eq!(metrics.l1_hit_rate(), 0.0, "Empty metrics should have 0% hit rate");
+        assert_eq!(
+            metrics.l1_hit_rate(),
+            0.0,
+            "Empty metrics should have 0% hit rate"
+        );
     }
 
     #[test]
@@ -338,6 +349,10 @@ mod tests {
 
         // Overall: 8 hits (6 L1 + 2 L2) out of 10 requests = 80%
         let overall = metrics.overall_hit_rate();
-        assert!((overall - 0.8).abs() < 0.01, "Expected 80% overall hit rate, got {}", overall);
+        assert!(
+            (overall - 0.8).abs() < 0.01,
+            "Expected 80% overall hit rate, got {}",
+            overall
+        );
     }
 }
