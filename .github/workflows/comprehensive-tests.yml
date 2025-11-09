@@ -41,7 +41,7 @@ jobs:
         run: cargo test --workspace --lib
 
       - name: Run integration tests
-        run: cargo test --workspace --test '*'
+        run: cargo test --workspace --tests
 
       - name: Upload test results
         if: always()
@@ -172,7 +172,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate Docker Compose
-        run: docker-compose -f docker-compose.production.yml config
+        run: docker compose -f docker-compose.production.yml config
 
       - name: Validate Kubernetes manifests
         run: |
@@ -196,7 +196,7 @@ jobs:
 
       - name: Start infrastructure
         run: |
-          docker-compose -f docker-compose.production.yml up -d
+          docker compose -f docker-compose.production.yml up -d
           sleep 30  # Wait for services to be ready
 
       - name: Install k6
@@ -222,7 +222,7 @@ jobs:
 
       - name: Stop infrastructure
         if: always()
-        run: docker-compose -f docker-compose.production.yml down
+        run: docker compose -f docker-compose.production.yml down
 
   # OWASP Security Scan (weekly)
   owasp-scan:
@@ -234,7 +234,7 @@ jobs:
 
       - name: Start application
         run: |
-          docker-compose -f docker-compose.production.yml up -d llm-edge-agent
+          docker compose -f docker-compose.production.yml up -d llm-edge-agent
           sleep 30
 
       - name: Run OWASP ZAP scan
@@ -251,7 +251,7 @@ jobs:
 
       - name: Stop application
         if: always()
-        run: docker-compose -f docker-compose.production.yml down
+        run: docker compose -f docker-compose.production.yml down
 
   # Test Report Summary
   test-summary:

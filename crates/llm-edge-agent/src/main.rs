@@ -152,8 +152,6 @@ async fn liveness_handler() -> axum::Json<serde_json::Value> {
 
 /// Prometheus metrics handler
 async fn metrics_handler() -> String {
-    use metrics_exporter_prometheus::PrometheusHandle;
-
     // Get the metrics handle from the global registry
     // In a real implementation, we'd store this in the app state
     // For now, return a basic response
