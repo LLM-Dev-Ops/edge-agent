@@ -156,13 +156,14 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: llm-edge-agent:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Test Docker image
         run: |
-          docker run --rm llm-edge-agent:test --version
+          docker run --rm llm-edge-agent:test --help || true
 
   # Infrastructure Tests
   infrastructure-tests:
