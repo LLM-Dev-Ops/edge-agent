@@ -9,6 +9,12 @@ pub struct PIIRedactor {
     credit_card_regex: Regex,
 }
 
+impl Default for PIIRedactor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PIIRedactor {
     pub fn new() -> Self {
         Self {

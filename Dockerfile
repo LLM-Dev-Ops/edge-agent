@@ -1,10 +1,9 @@
-# Multi-stage Dockerfile for LLM Edge Agent
-# Optimized for small image size and fast builds
+# Multi-stage Dockerfile for LLM Edge Agent (Rust Workspace)
 
-# Build stage
-FROM rust:1.83-slim as builder
+# Stage 1: Build
+FROM rust:1.75-slim AS builder
 
-WORKDIR /build
+WORKDIR /app
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -12,46 +11,64 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy manifests
+# Copy workspace files
 COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
 
-# Create a dummy main.rs to cache dependencies
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
+# Build release binary
+RUN cargo build --release --package llm-edge-agent
 
-# Copy actual source code
-COPY src ./src
-
-# Build the application (this will be fast since dependencies are cached)
-RUN cargo build --release
-
-# Runtime stage
+# Stage 2: Production
 FROM debian:bookworm-slim
+
+# Install runtime dependencies and security updates
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -g 1001 llm-agent && \
+    useradd -u 1001 -g llm-agent -s /bin/bash -m llm-agent
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Copy built binary from builder
+COPY --from=builder /app/target/release/llm-edge-agent /usr/local/bin/llm-edge-agent
 
-# Copy the binary from builder
-COPY --from=builder /build/target/release/llm-edge-agent /app/llm-edge-agent
+# Create necessary directories
+RUN mkdir -p /var/log/llm-edge-agent /etc/llm-edge-agent /cache && \
+    chown -R llm-agent:llm-agent /var/log/llm-edge-agent /etc/llm-edge-agent /cache /app
 
-# Create a non-root user
-RUN useradd -m -u 1000 llm-agent && \
-    chown -R llm-agent:llm-agent /app
-
+# Switch to non-root user
 USER llm-agent
 
-# Expose port
-EXPOSE 8080
-
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["/usr/bin/curl", "-f", "http://localhost:8080/health/live", "||", "exit", "1"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Run the binary
-ENTRYPOINT ["/app/llm-edge-agent"]
+# Expose ports
+# 8080: Main HTTP proxy port
+# 9090: Metrics port
+EXPOSE 8080 9090
+
+# Environment variables (can be overridden)
+ENV SERVER_ADDRESS=0.0.0.0:8080 \
+    LOG_LEVEL=info \
+    ENABLE_METRICS=true \
+    METRICS_PORT=9090 \
+    AUTH_ENABLED=true \
+    RATE_LIMIT_ENABLED=true
+
+# Start application
+CMD ["llm-edge-agent"]
+
+# Labels
+LABEL org.opencontainers.image.title="LLM Edge Agent" \
+      org.opencontainers.image.description="High-performance LLM intercepting proxy" \
+      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.vendor="Global Business Advisors" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/globalbusinessadvisors/llm-edge-agent"

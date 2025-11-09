@@ -9,6 +9,12 @@ pub struct ApiKeyAuth {
     keys: HashMap<String, Secret<String>>,
 }
 
+impl Default for ApiKeyAuth {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ApiKeyAuth {
     pub fn new() -> Self {
         Self {
@@ -33,6 +39,12 @@ impl ApiKeyAuth {
 /// JWT token authentication
 pub struct JwtAuth {
     // TODO: Implement JWT validation
+}
+
+impl Default for JwtAuth {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl JwtAuth {

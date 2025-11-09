@@ -22,9 +22,8 @@ if ! command -v cargo-audit &> /dev/null; then
     cargo install cargo-audit --features=fix
 fi
 
-# Update advisory database
-echo -e "${YELLOW}Updating advisory database...${NC}"
-cargo audit fetch
+# Note: Advisory database is automatically updated by cargo-audit
+echo -e "${YELLOW}Preparing to scan dependencies...${NC}"
 
 # Run audit
 echo -e "${YELLOW}Scanning dependencies...${NC}"
