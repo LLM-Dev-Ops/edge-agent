@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for LLM Edge Agent (Rust)
 
 # Stage 1: Build
-FROM rust:1.75-slim AS builder
+FROM rust:1.83-slim AS builder
 
 WORKDIR /app
 
