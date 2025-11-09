@@ -1,5 +1,109 @@
 {
+  "name": "@llm-dev-ops/llm-edge-agent",
+  "version": "0.1.0",
+  "description": "Enterprise-grade LLM intercepting proxy with intelligent caching, routing, and observability",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/globalbusinessadvisors/llm-edge-agent.git"
+  },
+  "homepage": "https://github.com/globalbusinessadvisors/llm-edge-agent#readme",
+  "bugs": {
+    "url": "https://github.com/globalbusinessadvisors/llm-edge-agent/issues"
+  },
+  "author": "LLM Edge Agent Team",
+  "keywords": [
+    "llm",
+    "proxy",
+    "ai",
+    "edge",
+    "gateway",
+    "anthropic",
+    "openai",
+    "cache",
+    "routing",
+    "observability",
+    "prometheus",
+    "grafana",
+    "rust",
+    "enterprise"
+  ],
+  "bin": {
+    "llm-edge-agent": "bin/llm-edge-agent.js"
+  },
+  "main": "bin/llm-edge-agent.js",
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "prepack": "node scripts/prepack.js",
+    "test": "node bin/cli.js --version",
+    "test:integration": "npm test && cargo test --workspace",
+    "build": "cargo build --release",
+    "build:debug": "cargo build",
+    "build:all": "npm run build:linux && npm run build:macos && npm run build:windows",
+    "build:linux": "cross build --release --target x86_64-unknown-linux-gnu && cross build --release --target aarch64-unknown-linux-gnu",
+    "build:macos": "cargo build --release --target x86_64-apple-darwin && cargo build --release --target aarch64-apple-darwin",
+    "build:windows": "cross build --release --target x86_64-pc-windows-msvc",
+    "package": "node scripts/package.js",
+    "package:all": "npm run package:linux-x64 && npm run package:linux-arm64 && npm run package:darwin-x64 && npm run package:darwin-arm64 && npm run package:windows-x64",
+    "package:linux-x64": "node scripts/package.js linux-x64",
+    "package:linux-arm64": "node scripts/package.js linux-arm64",
+    "package:darwin-x64": "node scripts/package.js darwin-x64",
+    "package:darwin-arm64": "node scripts/package.js darwin-arm64",
+    "package:windows-x64": "node scripts/package.js windows-x64",
+    "prepublishOnly": "node scripts/prepack.js",
+    "publish:dry": "npm publish --dry-run",
+    "publish:platforms": "node scripts/publish-platforms.js",
+    "publish:main": "npm publish --access public",
+    "clean": "cargo clean && rm -rf bin/*.exe bin/llm-edge-agent npm-packages",
+    "fmt": "cargo fmt --all",
+    "clippy": "cargo clippy --all-targets --all-features -- -D warnings",
+    "audit": "cargo audit",
+    "doc": "cargo doc --no-deps --document-private-items --open",
+    "start": "cargo run --release",
+    "start:dev": "cargo run",
+    "docker:build": "docker build -t llm-edge-agent:latest -f Dockerfile .",
+    "docker:run": "docker-compose -f docker-compose.production.yml up -d",
+    "docker:stop": "docker-compose -f docker-compose.production.yml down",
+    "k8s:deploy": "kubectl apply -f deployments/kubernetes/",
+    "k8s:delete": "kubectl delete -f deployments/kubernetes/"
+  },
+  "optionalDependencies": {
+    "@llm-dev-ops/llm-edge-agent-linux-x64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-linux-arm64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-darwin-x64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-darwin-arm64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-windows-x64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-windows-arm64": "0.1.0"
+  },
   "dependencies": {
-    "claude-flow": "^2.7.31"
-  }
+    "claude-flow": "^2.7.31",
+    "commander": "^12.0.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "tar": "^6.2.0"
+  },
+  "files": [
+    "bin/*.js",
+    "scripts/install.js",
+    "scripts/prepack.js",
+    "scripts/package.js",
+    "scripts/publish-platforms.js",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
 }

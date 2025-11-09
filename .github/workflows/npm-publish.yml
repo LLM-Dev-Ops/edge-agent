@@ -1,0 +1,300 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_type:
+        description: 'Publishing type'
+        required: true
+        type: choice
+        options:
+          - 'all'
+          - 'platforms-only'
+          - 'main-only'
+          - 'dry-run'
+        default: 'dry-run'
+      version:
+        description: 'Version to publish (leave empty to use package.json version)'
+        required: false
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Run prepack validation
+        run: npm run prepack
+
+      - name: Check npm authentication
+        if: github.event.inputs.publish_type != 'dry-run'
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  build-binaries:
+    name: Build ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: linux-x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - name: linux-arm64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - name: darwin-x64
+            os: macos-latest
+            target: x86_64-apple-darwin
+          - name: darwin-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.platform.target }}
+
+      - name: Install cross (for cross-compilation)
+        if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.target != 'x86_64-unknown-linux-gnu'
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build with cross (Linux ARM64)
+        if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.target == 'aarch64-unknown-linux-gnu'
+        run: cross build --release --target ${{ matrix.platform.target }}
+
+      - name: Build with cargo (native)
+        if: matrix.platform.os != 'ubuntu-latest' || matrix.platform.target == 'x86_64-unknown-linux-gnu'
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - name: Strip binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          if [ "${{ matrix.platform.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            echo "Skipping strip for cross-compiled ARM64 binary"
+          else
+            strip target/${{ matrix.platform.target }}/release/llm-edge-agent
+          fi
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.platform.name }}
+          path: |
+            target/${{ matrix.platform.target }}/release/llm-edge-agent
+            target/${{ matrix.platform.target }}/release/llm-edge-agent.exe
+          retention-days: 1
+
+  package-platforms:
+    name: Package Platform-Specific npm Packages
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Create target directory structure
+        run: |
+          mkdir -p target/x86_64-unknown-linux-gnu/release
+          mkdir -p target/aarch64-unknown-linux-gnu/release
+          mkdir -p target/x86_64-apple-darwin/release
+          mkdir -p target/aarch64-apple-darwin/release
+          mkdir -p target/x86_64-pc-windows-msvc/release
+
+      - name: Move binaries to target directories
+        run: |
+          # Linux x64
+          if [ -f artifacts/binary-linux-x64/llm-edge-agent ]; then
+            cp artifacts/binary-linux-x64/llm-edge-agent target/x86_64-unknown-linux-gnu/release/
+          fi
+
+          # Linux ARM64
+          if [ -f artifacts/binary-linux-arm64/llm-edge-agent ]; then
+            cp artifacts/binary-linux-arm64/llm-edge-agent target/aarch64-unknown-linux-gnu/release/
+          fi
+
+          # macOS x64
+          if [ -f artifacts/binary-darwin-x64/llm-edge-agent ]; then
+            cp artifacts/binary-darwin-x64/llm-edge-agent target/x86_64-apple-darwin/release/
+          fi
+
+          # macOS ARM64
+          if [ -f artifacts/binary-darwin-arm64/llm-edge-agent ]; then
+            cp artifacts/binary-darwin-arm64/llm-edge-agent target/aarch64-apple-darwin/release/
+          fi
+
+          # Windows x64
+          if [ -f artifacts/binary-windows-x64/llm-edge-agent.exe ]; then
+            cp artifacts/binary-windows-x64/llm-edge-agent.exe target/x86_64-pc-windows-msvc/release/
+          fi
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Package all platforms
+        run: npm run package:all
+
+      - name: Upload platform packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-packages/
+          retention-days: 7
+
+  publish-platforms:
+    name: Publish Platform Packages
+    needs: package-platforms
+    runs-on: ubuntu-latest
+    if: github.event.inputs.publish_type == 'all' || github.event.inputs.publish_type == 'platforms-only'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download platform packages
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-packages
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Publish platform packages
+        run: node scripts/publish-platforms.js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Wait for npm registry indexing
+        run: sleep 60
+
+  publish-main:
+    name: Publish Main Package
+    needs: package-platforms
+    runs-on: ubuntu-latest
+    if: github.event.inputs.publish_type == 'all' || github.event.inputs.publish_type == 'main-only'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Run prepack validation
+        run: npm run prepack
+
+      - name: Publish main package
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create summary
+        run: |
+          echo "# 🎉 NPM Publication Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Published Packages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [@llm-dev-ops/llm-edge-agent](https://www.npmjs.com/package/@llm-dev-ops/llm-edge-agent)" >> $GITHUB_STEP_SUMMARY
+          echo "- @llm-dev-ops/llm-edge-agent-linux-x64" >> $GITHUB_STEP_SUMMARY
+          echo "- @llm-dev-ops/llm-edge-agent-linux-arm64" >> $GITHUB_STEP_SUMMARY
+          echo "- @llm-dev-ops/llm-edge-agent-darwin-x64" >> $GITHUB_STEP_SUMMARY
+          echo "- @llm-dev-ops/llm-edge-agent-darwin-arm64" >> $GITHUB_STEP_SUMMARY
+          echo "- @llm-dev-ops/llm-edge-agent-windows-x64" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Installation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npm install @llm-dev-ops/llm-edge-agent" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Quick Test" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npx @llm-dev-ops/llm-edge-agent --version" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  dry-run:
+    name: Dry Run (No Publishing)
+    needs: package-platforms
+    runs-on: ubuntu-latest
+    if: github.event.inputs.publish_type == 'dry-run'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Download platform packages
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-packages
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Dry run platform packages
+        run: node scripts/publish-platforms.js --dry-run
+
+      - name: Dry run main package
+        run: npm publish --dry-run
+
+      - name: Summary
+        run: |
+          echo "# 🏃 Dry Run Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No packages were published. This was a validation run." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To publish for real, run this workflow with 'all' option." >> $GITHUB_STEP_SUMMARY

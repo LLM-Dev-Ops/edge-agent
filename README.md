@@ -87,9 +87,21 @@ LLM Edge Agent is a high-performance, production-ready intercepting proxy for La
 
 ### Installation
 
+#### Option 1: NPM (Recommended - Cross-Platform)
+
+```bash
+# Install globally
+npm install -g @llm-dev-ops/llm-edge-agent
+
+# Or use with npx (no installation)
+npx @llm-dev-ops/llm-edge-agent start
+```
+
+#### Option 2: From Source
+
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/llm-edge-agent.git
+git clone https://github.com/globalbusinessadvisors/llm-edge-agent.git
 cd llm-edge-agent
 
 # Build the project
@@ -97,12 +109,29 @@ cargo build --release
 
 # Run tests
 cargo test --workspace
+```
 
-# Start with Docker Compose (recommended)
+#### Option 3: Docker
+
+```bash
+# Start with Docker Compose (includes Redis, Prometheus, Grafana)
 docker-compose -f docker-compose.production.yml up -d
 ```
 
 ### Configuration
+
+#### NPM Installation
+
+```bash
+# Generate configuration template
+llm-edge-agent config init
+
+# Edit .env file with your API keys
+# Then start the server
+llm-edge-agent start
+```
+
+#### Manual Configuration
 
 Create a `.env` file:
 
@@ -131,6 +160,27 @@ RUST_LOG=info,llm_edge_agent=debug
 ```
 
 ### Running
+
+#### NPM Installation
+
+```bash
+# Start the server (basic)
+llm-edge-agent start
+
+# Start with custom configuration
+llm-edge-agent start --port 8080 --openai-key sk-... --enable-l2-cache --redis-url redis://localhost:6379
+
+# Run in background (daemon mode)
+llm-edge-agent start --daemon
+
+# Check health
+llm-edge-agent health
+
+# View metrics
+llm-edge-agent metrics
+```
+
+#### From Source
 
 ```bash
 # Standalone (without infrastructure)

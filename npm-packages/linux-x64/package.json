@@ -1,0 +1,25 @@
+{
+  "name": "@llm-dev-ops/llm-edge-agent-linux-x64",
+  "version": "0.1.0",
+  "description": "llm-edge-agent binary for linux-x64",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/globalbusinessadvisors/llm-edge-agent.git"
+  },
+  "homepage": "https://github.com/globalbusinessadvisors/llm-edge-agent#readme",
+  "bugs": {
+    "url": "https://github.com/globalbusinessadvisors/llm-edge-agent/issues"
+  },
+  "author": "LLM Edge Agent Team",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/"
+  ],
+  "main": "package.json"
+}

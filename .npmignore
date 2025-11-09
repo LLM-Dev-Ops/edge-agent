@@ -1,0 +1,98 @@
+# NPM Ignore File for @llm-dev-ops/llm-edge-agent
+# This file specifies which files should NOT be included in the npm package
+
+# Rust source code (users don't need this)
+/src/
+/crates/
+Cargo.toml
+Cargo.lock
+rust-toolchain.toml
+rustfmt.toml
+clippy.toml
+
+# Build artifacts
+/target/
+*.rs.bk
+/npm-packages/
+
+# Tests
+/tests/
+/benches/
+*.test.js
+*.spec.js
+
+# CI/CD
+/.github/
+.travis.yml
+.circleci/
+azure-pipelines.yml
+
+# Development files
+/.vscode/
+/.idea/
+/.claude-flow/
+/plans/
+
+# Docker and Kubernetes
+Dockerfile*
+docker-compose*.yml
+/deployments/
+/infrastructure/
+.dockerignore
+
+# Documentation (except README)
+/docs/
+CONTRIBUTING.md
+PUBLISHING.md
+PUBLISH_NOW.md
+TESTING_GUIDE.md
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Package managers
+node_modules/
+yarn.lock
+pnpm-lock.yaml
+
+# Examples
+/examples/
+
+# Performance and profiling
+flamegraph.svg
+perf.data*
+*.prof
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test and verification scripts
+/scripts/run-tests.sh
+/scripts/verify_backend_implementation.sh
+/scripts/verify-production-ready.sh
