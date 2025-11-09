@@ -63,7 +63,8 @@ ENV SERVER_ADDRESS=0.0.0.0:8080 \
     RATE_LIMIT_ENABLED=true
 
 # Start application
-CMD ["llm-edge-agent"]
+ENTRYPOINT ["/usr/local/bin/llm-edge-agent"]
+CMD []
 
 # Labels
 LABEL org.opencontainers.image.title="LLM Edge Agent" \

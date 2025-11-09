@@ -7,10 +7,12 @@ use crate::{
 use async_trait::async_trait;
 use secrecy::Secret;
 
-#[allow(dead_code)]
 pub struct OpenAIAdapter {
+    #[allow(dead_code)]
     client: reqwest::Client,
+    #[allow(dead_code)]
     api_key: Secret<String>,
+    #[allow(dead_code)]
     base_url: String,
 }
 
