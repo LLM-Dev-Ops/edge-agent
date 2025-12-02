@@ -1,3 +1,31 @@
+[package]
+name = "edge-agent"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Workspace crates
+llm-edge-cache = { version = "0.1.0", path = "crates/llm-edge-cache" }
+llm-edge-routing = { version = "0.1.0", path = "crates/llm-edge-routing" }
+
+# Core dependencies
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile = "3.8"
+
+[[bin]]
+name = "benchmark"
+path = "src/bin/benchmark.rs"
+
 [workspace]
 members = [
     "crates/llm-edge-agent",

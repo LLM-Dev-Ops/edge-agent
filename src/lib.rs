@@ -6,7 +6,12 @@
 //! - Prometheus metrics integration
 //! - Sub-millisecond L1 latency, 1-2ms L2 latency
 
+pub mod adapters;
+pub mod benchmarks;
 pub mod cache;
 
 // Re-export commonly used types
 pub use cache::{CacheLookupResult, CacheManager};
+
+// Re-export benchmark functions for convenience
+pub use benchmarks::run_all_benchmarks;

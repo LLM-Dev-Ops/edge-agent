@@ -217,6 +217,55 @@ program
     }
   });
 
+// Benchmark command - run performance benchmarks
+program
+  .command('benchmark')
+  .description('Run performance benchmarks and generate reports')
+  .option('-o, --output <dir>', 'Output directory', 'benchmarks/output')
+  .option('--json-only', 'Output only JSON results (skip markdown)')
+  .action(async (options) => {
+    try {
+      const chalk = requireChalk();
+      const { execSync } = require('child_process');
+
+      console.log(chalk.blue.bold('\n🔬 Running LLM Edge Agent Benchmarks...\n'));
+
+      // Ensure cargo is available
+      try {
+        execSync('cargo --version', { stdio: 'ignore' });
+      } catch (err) {
+        console.error(chalk.red('\n✗ Cargo (Rust) is not installed or not in PATH\n'));
+        console.error(chalk.gray('Please install Rust from https://rustup.rs/\n'));
+        process.exit(1);
+      }
+
+      // Run the benchmark binary
+      console.log(chalk.gray('Compiling and running benchmarks...\n'));
+
+      try {
+        const output = execSync('cargo run --bin benchmark --release', {
+          cwd: path.join(__dirname, '..'),
+          stdio: 'inherit'
+        });
+
+        console.log(chalk.green('\n✓ Benchmarks completed successfully!\n'));
+        console.log(chalk.gray(`Results saved to: ${options.output}/\n`));
+        console.log(chalk.gray('View summary:'));
+        console.log(chalk.gray(`  cat ${options.output}/summary.md\n`));
+
+        process.exit(0);
+      } catch (err) {
+        console.error(chalk.red('\n✗ Benchmark execution failed\n'));
+        console.error(chalk.gray(err.message));
+        process.exit(1);
+      }
+    } catch (err) {
+      const chalk = requireChalk();
+      console.error(chalk.red(`\n✗ Error: ${err.message}\n`));
+      process.exit(1);
+    }
+  });
+
 // Parse arguments
 program.parse();
 

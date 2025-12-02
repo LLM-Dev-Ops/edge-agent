@@ -61,6 +61,8 @@
     "doc": "cargo doc --no-deps --document-private-items --open",
     "start": "cargo run --release",
     "start:dev": "cargo run",
+    "bench": "cargo run --bin benchmark --release",
+    "bench:dev": "cargo run --bin benchmark",
     "docker:build": "docker build -t llm-edge-agent:latest -f Dockerfile .",
     "docker:run": "docker-compose -f docker-compose.production.yml up -d",
     "docker:stop": "docker-compose -f docker-compose.production.yml down",
@@ -68,17 +70,17 @@
     "k8s:delete": "kubectl delete -f deployments/kubernetes/"
   },
   "optionalDependencies": {
-    "@llm-dev-ops/llm-edge-agent-linux-x64": "0.1.0",
-    "@llm-dev-ops/llm-edge-agent-linux-arm64": "0.1.0",
-    "@llm-dev-ops/llm-edge-agent-darwin-x64": "0.1.0",
     "@llm-dev-ops/llm-edge-agent-darwin-arm64": "0.1.0",
-    "@llm-dev-ops/llm-edge-agent-windows-x64": "0.1.0",
-    "@llm-dev-ops/llm-edge-agent-windows-arm64": "0.1.0"
+    "@llm-dev-ops/llm-edge-agent-darwin-x64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-linux-arm64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-linux-x64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-windows-arm64": "0.1.0",
+    "@llm-dev-ops/llm-edge-agent-windows-x64": "0.1.0"
   },
   "dependencies": {
-    "claude-flow": "^2.7.31",
-    "commander": "^12.0.0",
-    "chalk": "^4.1.2"
+    "chalk": "^4.1.2",
+    "claude-flow": "^2.7.41",
+    "commander": "^12.0.0"
   },
   "devDependencies": {
     "tar": "^6.2.0"
