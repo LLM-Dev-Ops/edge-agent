@@ -1,0 +1,40 @@
+[package]
+name = "llm-edge-integrations"
+version = "0.1.0"
+edition = "2021"
+authors = ["LLM Edge Agent Team"]
+license = "Apache-2.0"
+description = "Upstream dependency integration adapters for LLM Edge Agent"
+
+[dependencies]
+# Workspace dependencies
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+# Upstream LLM DevOps dependencies (Phase 2B integrations)
+llm-shield-sdk = { git = "https://github.com/LLM-Dev-Ops/shield", branch = "main", optional = true }
+llm-sentinel = { git = "https://github.com/LLM-Dev-Ops/sentinel", branch = "main", optional = true }
+connector-hub-core = { git = "https://github.com/LLM-Dev-Ops/connector-hub", branch = "main", optional = true }
+llm-cost-ops = { git = "https://github.com/LLM-Dev-Ops/cost-ops", branch = "main", optional = true }
+llm-observatory-core = { git = "https://github.com/LLM-Dev-Ops/observatory", branch = "main", optional = true }
+llm-policy-engine = { git = "https://github.com/LLM-Dev-Ops/policy-engine", branch = "main", optional = true }
+
+[features]
+default = []
+# Individual integration features (opt-in)
+shield = ["llm-shield-sdk"]
+sentinel = ["llm-sentinel"]
+connector-hub = ["connector-hub-core"]
+cost-ops = ["llm-cost-ops"]
+observatory = ["llm-observatory-core"]
+policy-engine = ["llm-policy-engine"]
+# Enable all integrations
+all = ["shield", "sentinel", "connector-hub", "cost-ops", "observatory", "policy-engine"]
+
+[dev-dependencies]
+tokio-test = "0.4"

@@ -1,0 +1,210 @@
+# Docker Compose for LLM Edge Agent with OpenTelemetry 0.27
+# Week 1 Deployment: Edge-Agent + 5 Upstream Dependencies + OTLP Collector
+
+version: '3.9'
+
+services:
+  # OpenTelemetry Collector (OTLP endpoint)
+  otlp-collector:
+    image: otel/opentelemetry-collector:0.111.0
+    container_name: llm-otlp-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./deploy/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Metrics endpoint
+      - "8889:8889"   # Prometheus exporter
+      - "13133:13133" # Health check
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Jaeger backend (for trace visualization)
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: llm-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_OTLP_GRPC_HOST_PORT=:4317
+      - COLLECTOR_OTLP_HTTP_HOST_PORT=:4318
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14250:14250" # gRPC receiver
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # Prometheus (for metrics)
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: llm-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Grafana (for visualization)
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: llm-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - llm-network
+    depends_on:
+      - prometheus
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # Redis (for L2 cache)
+  redis:
+    image: redis:7.4-alpine
+    container_name: llm-redis
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    networks:
+      - llm-network
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  # LLM Edge Agent (main application)
+  edge-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: llm-edge-agent
+    environment:
+      # Service Configuration
+      - SERVICE_NAME=llm.edge-agent
+      - SERVICE_VERSION=0.1.0
+      - SERVICE_NAMESPACE=llm-devops
+      - DEPLOYMENT_ENVIRONMENT=staging
+
+      # OpenTelemetry Configuration (0.27)
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otlp-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_SERVICE_NAME=llm.edge-agent
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=llm-devops,deployment.environment=staging,service.version=0.1.0
+      - OTEL_TRACES_SAMPLER=parentbased_always_on
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+
+      # Tracing Configuration
+      - RUST_LOG=info,llm_edge_agent=debug,tower_http=debug
+      - TRACING_ENABLED=true
+      - TRACING_LEVEL=info
+
+      # Redis Configuration
+      - REDIS_URL=redis://redis:6379
+      - REDIS_POOL_SIZE=10
+      - REDIS_TIMEOUT_MS=1000
+
+      # Application Configuration
+      - HTTP_PORT=8080
+      - METRICS_PORT=9091
+      - HEALTH_CHECK_PORT=8080
+      - WORKERS=4
+      - MAX_CONNECTIONS=10000
+
+      # Cache Configuration
+      - L1_CACHE_SIZE=10000
+      - L1_CACHE_TTL=300
+      - L2_CACHE_ENABLED=true
+      - L2_CACHE_TTL=3600
+
+      # Upstream Dependencies (Week 1: 5 enabled, Policy-Engine disabled)
+      - SHIELD_ENABLED=true
+      - SENTINEL_ENABLED=true
+      - OBSERVATORY_ENABLED=true
+      - COST_OPS_ENABLED=true
+      - CONNECTOR_HUB_ENABLED=true
+      - POLICY_ENGINE_ENABLED=false  # Week 2-3: Will be enabled after upgrade
+    ports:
+      - "8080:8080"   # HTTP API
+      - "9091:9091"   # Prometheus metrics
+    networks:
+      - llm-network
+    depends_on:
+      otlp-collector:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+networks:
+  llm-network:
+    driver: bridge
+    name: llm-edge-network
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  redis-data:
+    driver: local

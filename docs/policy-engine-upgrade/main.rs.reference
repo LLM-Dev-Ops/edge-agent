@@ -1,0 +1,338 @@
+// Policy-Engine main.rs - Reference Implementation
+// OpenTelemetry 0.21 → 0.27 Upgrade
+// This shows the CORRECTED initialization code
+
+use anyhow::Result;
+use opentelemetry::{global, KeyValue};
+use opentelemetry_sdk::{
+    trace::{BatchConfigBuilder, BatchSpanProcessor, TracerProvider},
+    Resource,
+};
+use opentelemetry_otlp::WithExportConfig;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+// ============================================================================
+// BEFORE (0.21 - BROKEN)
+// ============================================================================
+
+/*
+// OLD CODE - DON'T USE THIS
+
+use opentelemetry::global;
+use opentelemetry::sdk::trace::{self, TracerProvider};
+use opentelemetry_jaeger::JaegerPipeline;
+
+fn init_telemetry_old() -> Result<()> {
+    // Jaeger exporter (deprecated)
+    let tracer = opentelemetry_jaeger::new_agent_pipeline()
+        .with_service_name("llm.policy-engine")
+        .with_endpoint("jaeger:6831")  // UDP port
+        .install_batch(opentelemetry::runtime::Tokio)?;  // OLD: runtime param required
+
+    // Set global tracer provider
+    global::set_tracer_provider(tracer.provider()?);
+
+    // Tracing subscriber
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+    tracing_subscriber::registry()
+        .with(telemetry)
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    Ok(())
+}
+
+// Shutdown (old)
+fn shutdown_old() {
+    global::shutdown_tracer_provider();  // OLD: Global shutdown
+}
+*/
+
+// ============================================================================
+// AFTER (0.27 - FIXED)
+// ============================================================================
+
+/// Initialize OpenTelemetry 0.27 telemetry with OTLP exporter
+pub fn init_telemetry() -> Result<()> {
+    // Read configuration from environment
+    let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+        .unwrap_or_else(|_| "http://otlp-collector:4317".to_string());
+    let service_name = std::env::var("OTEL_SERVICE_NAME")
+        .unwrap_or_else(|_| "llm.policy-engine".to_string());
+    let deployment_env = std::env::var("DEPLOYMENT_ENVIRONMENT")
+        .unwrap_or_else(|_| "staging".to_string());
+
+    // Create resource with service metadata
+    let resource = Resource::builder()
+        .with_service_name(service_name.clone())
+        .with_attributes(vec![
+            KeyValue::new("service.namespace", "llm-devops"),
+            KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
+            KeyValue::new("deployment.environment", deployment_env),
+        ])
+        .build();
+
+    // Configure OTLP exporter with gRPC
+    let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()  // Use gRPC transport
+        .with_endpoint(&otlp_endpoint)
+        .build()?;
+
+    // Configure batch span processor
+    let batch_config = BatchConfigBuilder::default()
+        .with_max_queue_size(2048)
+        .with_max_export_batch_size(512)
+        .with_scheduled_delay(std::time::Duration::from_secs(5))
+        .build();
+
+    // Create batch span processor
+    // CRITICAL: No runtime parameter in 0.27+ (background tasks spawn automatically)
+    let batch_processor = BatchSpanProcessor::builder(otlp_exporter)
+        .with_batch_config(batch_config)
+        .build();
+
+    // Create tracer provider
+    let tracer_provider = TracerProvider::builder()
+        .with_span_processor(batch_processor)
+        .with_resource(resource)
+        .build();
+
+    // Get tracer before setting global (needed for tracing-opentelemetry)
+    let tracer = tracer_provider.tracer(service_name);
+
+    // Set global tracer provider
+    global::set_tracer_provider(tracer_provider);
+
+    // Create tracing subscriber with OpenTelemetry layer
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+
+    let subscriber = tracing_subscriber::registry()
+        .with(telemetry)
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(true)
+                .with_level(true)
+                .json()
+        )
+        .with(tracing_subscriber::EnvFilter::from_default_env());
+
+    subscriber.init();
+
+    tracing::info!(
+        service.name = %service_name,
+        otlp.endpoint = %otlp_endpoint,
+        "OpenTelemetry 0.27 telemetry initialized"
+    );
+
+    Ok(())
+}
+
+/// Graceful shutdown with explicit provider shutdown
+pub async fn shutdown_telemetry() {
+    tracing::info!("Shutting down telemetry...");
+
+    // Flush remaining spans
+    if let Err(e) = global::shutdown_tracer_provider() {
+        tracing::error!("Error shutting down tracer provider: {:?}", e);
+    }
+
+    tracing::info!("Telemetry shutdown complete");
+}
+
+// ============================================================================
+// MAIN FUNCTION (EXAMPLE)
+// ============================================================================
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Load environment variables
+    dotenv::dotenv().ok();
+
+    // Initialize telemetry
+    init_telemetry()?;
+
+    // Application startup
+    tracing::info!("Starting Policy-Engine...");
+
+    // Your application logic here
+    // ...
+
+    // Graceful shutdown
+    let shutdown_signal = tokio::signal::ctrl_c();
+
+    tokio::select! {
+        _ = shutdown_signal => {
+            tracing::info!("Shutdown signal received");
+        }
+    }
+
+    // Shutdown telemetry before exit
+    shutdown_telemetry().await;
+
+    Ok(())
+}
+
+// ============================================================================
+// KEY CHANGES FROM 0.21 → 0.27
+// ============================================================================
+
+/*
+BREAKING CHANGES:
+
+1. EXPORTER REPLACEMENT:
+   OLD: opentelemetry_jaeger::new_agent_pipeline()
+   NEW: opentelemetry_otlp::SpanExporter::builder().with_tonic()
+
+2. RUNTIME PARAMETER REMOVED:
+   OLD: .install_batch(opentelemetry::runtime::Tokio)?
+   NEW: BatchSpanProcessor::builder(exporter).build()
+        (background tasks spawn automatically on dedicated threads)
+
+3. RESOURCE BUILDER API CHANGED:
+   OLD: Resource::new(vec![KeyValue::new("service.name", "my-service")])
+   NEW: Resource::builder().with_service_name("my-service").build()
+
+4. PROVIDER INITIALIZATION:
+   OLD: Global provider set implicitly by install_batch()
+   NEW: Explicit TracerProvider creation, then global::set_tracer_provider()
+
+5. SHUTDOWN PATTERN:
+   OLD: global::shutdown_tracer_provider() (no error handling)
+   NEW: Same function, but returns Result (handle errors)
+
+6. FEATURE FLAGS:
+   OLD: opentelemetry with "rt-tokio" feature
+   NEW: opentelemetry_sdk with "rt-tokio" feature
+
+7. ENDPOINT CONFIGURATION:
+   OLD: Jaeger agent endpoint (UDP port 6831)
+   NEW: OTLP endpoint (gRPC port 4317 or HTTP port 4318)
+*/
+
+// ============================================================================
+// TESTING
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_telemetry_init_shutdown() {
+        // Set test environment variables
+        std::env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317");
+        std::env::set_var("OTEL_SERVICE_NAME", "test-service");
+        std::env::set_var("DEPLOYMENT_ENVIRONMENT", "test");
+
+        // Initialize telemetry
+        init_telemetry().expect("Failed to initialize telemetry");
+
+        // Create a test span
+        use tracing::info;
+        info!("Test span created");
+
+        // Shutdown telemetry
+        shutdown_telemetry().await;
+    }
+
+    #[test]
+    fn test_environment_defaults() {
+        std::env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
+        std::env::remove_var("OTEL_SERVICE_NAME");
+
+        let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+            .unwrap_or_else(|_| "http://otlp-collector:4317".to_string());
+        let service = std::env::var("OTEL_SERVICE_NAME")
+            .unwrap_or_else(|_| "llm.policy-engine".to_string());
+
+        assert_eq!(endpoint, "http://otlp-collector:4317");
+        assert_eq!(service, "llm.policy-engine");
+    }
+}
+
+// ============================================================================
+// DOCKER-COMPOSE INTEGRATION
+// ============================================================================
+
+/*
+Add these environment variables to your docker-compose.yml:
+
+services:
+  policy-engine:
+    image: policy-engine:0.27
+    environment:
+      # OpenTelemetry 0.27 Configuration
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otlp-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_SERVICE_NAME=llm.policy-engine
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=llm-devops,deployment.environment=staging
+      - DEPLOYMENT_ENVIRONMENT=staging
+
+      # Tracing Configuration
+      - RUST_LOG=info,policy_engine=debug
+
+    depends_on:
+      otlp-collector:
+        condition: service_healthy
+*/
+
+// ============================================================================
+// OTLP COLLECTOR CONFIGURATION
+// ============================================================================
+
+/*
+Your OTLP Collector should be configured to forward traces to Jaeger:
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger]
+*/
+
+// ============================================================================
+// VERIFICATION CHECKLIST
+// ============================================================================
+
+/*
+After applying these changes:
+
+1. [ ] Cargo.toml updated with OpenTelemetry 0.27 dependencies
+2. [ ] main.rs updated with new initialization code
+3. [ ] cargo check passes (no "rt-tokio" feature errors)
+4. [ ] cargo build --release succeeds
+5. [ ] cargo test passes (all tests green)
+6. [ ] docker-compose.yml has OTLP environment variables
+7. [ ] OTLP Collector is deployed and configured
+8. [ ] Application starts without errors
+9. [ ] Traces appear in Jaeger UI within 10 seconds
+10. [ ] Edge-Agent compiles with all 6 dependencies
+*/
+
+// ============================================================================
+// SUPPORT & RESOURCES
+// ============================================================================
+
+/*
+Documentation:
+- /POLICY_ENGINE_UPGRADE_SPECIFICATION.md (comprehensive guide)
+- /OTEL_UPGRADE_QUICK_START.md (TL;DR)
+- /OTEL_MIGRATION_VISUAL_GUIDE.md (diagrams)
+
+Edge-Agent Team Support:
+- Daily standups during Week 2
+- Pair programming available
+- Code review assistance
+
+OpenTelemetry Resources:
+- Rust SDK: https://github.com/open-telemetry/opentelemetry-rust
+- OTLP Spec: https://opentelemetry.io/docs/specs/otlp/
+- Migration Guide: https://opentelemetry.io/docs/migration/
+*/

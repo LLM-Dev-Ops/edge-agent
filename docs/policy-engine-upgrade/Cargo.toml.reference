@@ -1,0 +1,200 @@
+# Policy-Engine Cargo.toml - Reference Implementation
+# OpenTelemetry 0.21 → 0.27 Upgrade
+# This is the CORRECTED version showing all required changes
+
+[package]
+name = "llm-policy-engine"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# ============================================================================
+# OPENTELEMETRY 0.27 (UPGRADED)
+# ============================================================================
+
+# BEFORE (0.21 - BROKEN):
+# opentelemetry = { version = "0.21", features = ["rt-tokio"] }
+# opentelemetry-jaeger = "0.20"
+
+# AFTER (0.27 - FIXED):
+opentelemetry = "0.27"  # Core types - NO rt-tokio feature here
+opentelemetry_sdk = { version = "0.27", features = ["trace", "rt-tokio"] }  # SDK with Tokio runtime
+opentelemetry-otlp = { version = "0.27", features = ["trace", "grpc-tonic"] }  # OTLP exporter (replaces Jaeger)
+
+# CRITICAL CHANGES:
+# 1. Feature "rt-tokio" moved from opentelemetry → opentelemetry_sdk
+# 2. Jaeger exporter deprecated → Use OTLP exporter instead
+# 3. Added opentelemetry_sdk for provider initialization
+# 4. OTLP exporter with gRPC transport
+
+# ============================================================================
+# TRACING (UNCHANGED)
+# ============================================================================
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.26"  # Bridge: Compatible with OpenTelemetry 0.27
+
+# ============================================================================
+# ASYNC RUNTIME (UNCHANGED)
+# ============================================================================
+tokio = { version = "1.35", features = ["full", "tracing"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# ============================================================================
+# WEB FRAMEWORK (UNCHANGED)
+# ============================================================================
+axum = { version = "0.7", features = ["macros", "ws"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# ============================================================================
+# POLICY ENGINE CORE (UNCHANGED)
+# ============================================================================
+# CEL (Common Expression Language)
+cel-interpreter = "0.7"
+
+# WASM runtime
+wasmtime = "16.0"
+
+# Policy storage
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls"], optional = true }
+
+# Cache
+redis = { version = "0.25", features = ["tokio-comp"], optional = true }
+dashmap = "6.0"
+arc-swap = "1.7"
+
+# ============================================================================
+# GRPC (UNCHANGED)
+# ============================================================================
+tonic = "0.12"
+prost = "0.13"
+
+# ============================================================================
+# SERIALIZATION (UNCHANGED)
+# ============================================================================
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# ============================================================================
+# ERROR HANDLING (UNCHANGED)
+# ============================================================================
+anyhow = "1.0"
+thiserror = "1.0"
+
+# ============================================================================
+# UTILITIES (UNCHANGED)
+# ============================================================================
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Rate limiting
+governor = "0.6"
+
+# Validation
+validator = { version = "0.20", features = ["derive"] }
+
+# Logging
+parking_lot = "0.12"
+
+# ============================================================================
+# OBSERVABILITY (UPDATED FOR 0.27)
+# ============================================================================
+metrics = "0.23"  # May need update depending on other deps
+metrics-exporter-prometheus = "0.15"
+
+[dev-dependencies]
+tempfile = "3.8"
+tokio-test = "0.4"
+
+[features]
+default = ["redis-cache", "postgres-storage"]
+redis-cache = ["redis"]
+postgres-storage = ["sqlx"]
+sqlite-storage = ["sqlx/sqlite"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+
+# ============================================================================
+# MIGRATION SUMMARY
+# ============================================================================
+
+# BREAKING CHANGES FROM 0.21 → 0.27:
+#
+# 1. FEATURE MIGRATION:
+#    - opentelemetry "rt-tokio" → opentelemetry_sdk "rt-tokio"
+#
+# 2. JAEGER DEPRECATED:
+#    - opentelemetry-jaeger (removed) → opentelemetry-otlp (added)
+#
+# 3. SDK REQUIRED:
+#    - Must add opentelemetry_sdk = "0.27" for providers
+#
+# 4. EXPORTER CHANGE:
+#    - Jaeger UDP/HTTP → OTLP gRPC (port 4317) or HTTP (port 4318)
+#
+# INFRASTRUCTURE CHANGES:
+#
+# 1. OTLP COLLECTOR:
+#    - Deploy OpenTelemetry Collector
+#    - Configure with Jaeger backend (OTLP ingestion)
+#
+# 2. ENVIRONMENT VARIABLES:
+#    - OTEL_EXPORTER_OTLP_ENDPOINT=http://otlp-collector:4317
+#    - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+#
+# 3. JAEGER BACKEND:
+#    - Enable OTLP support: COLLECTOR_OTLP_ENABLED=true
+#    - Jaeger can ingest OTLP traces on port 4317/4318
+
+# ============================================================================
+# VERIFICATION
+# ============================================================================
+
+# After applying these changes:
+# 1. Run: cargo check
+#    Expected: SUCCESS (no more "rt-tokio feature not found" error)
+#
+# 2. Run: cargo build --release
+#    Expected: SUCCESS (compiles cleanly)
+#
+# 3. Run: cargo test
+#    Expected: Tests pass (may need to update initialization code)
+#
+# 4. Deploy with Edge-Agent:
+#    - Uncomment llm-policy-engine in Edge-Agent Cargo.toml
+#    - Run: docker compose build edge-agent
+#    - Expected: All 6 dependencies compile together
+
+# ============================================================================
+# NEXT STEPS
+# ============================================================================
+
+# 1. Update initialization code (see main.rs.reference)
+# 2. Update docker-compose.yml (add OTLP env vars)
+# 3. Update tests (use new provider initialization pattern)
+# 4. Test OTLP export to collector
+# 5. Validate traces appear in Jaeger
+
+# ============================================================================
+# SUPPORT
+# ============================================================================
+
+# Documentation:
+# - /POLICY_ENGINE_UPGRADE_SPECIFICATION.md (65 KB comprehensive guide)
+# - /OTEL_UPGRADE_QUICK_START.md (4 KB TL;DR)
+# - /OTEL_MIGRATION_VISUAL_GUIDE.md (20 KB with diagrams)
+
+# Questions:
+# - Contact Edge-Agent team
+# - Daily standups during Week 2
+# - Pair programming available
