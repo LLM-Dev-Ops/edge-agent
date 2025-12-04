@@ -1,0 +1,38 @@
+Repository,Crate Name,Version,Features,Declaration Level,Declaration Type,Transitive Status,Exporter Type,Source Location
+Edge-Agent,opentelemetry,0.26,-,Workspace,Direct,Direct,OTLP,Cargo.toml:83
+Edge-Agent,opentelemetry-otlp,0.26,trace,Workspace,Direct,Direct,OTLP (gRPC),Cargo.toml:84
+Edge-Agent,opentelemetry-proto,0.26.1,-,N/A,Transitive,Transitive,OTLP Proto,Cargo.lock
+Edge-Agent,opentelemetry_sdk,0.26.0,-,N/A,Transitive,Transitive,OTLP SDK,Cargo.lock
+Edge-Agent,tracing,0.1.41,-,Workspace,Direct,Direct,Structured Logging,Cargo.toml:85
+Edge-Agent,tracing-subscriber,0.3.20,env-filter; json,Workspace,Direct,Direct,JSON Formatter,Cargo.toml:86
+Edge-Agent,tracing-attributes,0.1.30,-,N/A,Transitive,Transitive,Tracing Macro,Cargo.lock
+Edge-Agent,tracing-core,0.1.34,-,N/A,Transitive,Transitive,Tracing Core,Cargo.lock
+Edge-Agent,tracing-log,0.2.0,-,N/A,Transitive,Transitive,Log Bridge,Cargo.lock
+Edge-Agent,tracing-serde,0.2.0,-,N/A,Transitive,Transitive,Serde Serialization,Cargo.lock
+Edge-Agent,metrics,0.23,-,Workspace,Direct,Direct,Metrics Collection,Cargo.toml:87
+Edge-Agent,metrics-exporter-prometheus,0.15.3,-,Workspace,Direct,Direct,Prometheus HTTP,Cargo.toml:88
+Edge-Agent,tonic,0.12.3,-,N/A,Transitive,Transitive,gRPC Transport,Cargo.lock
+Edge-Agent,prost,0.13.5,-,N/A,Transitive,Transitive,Protocol Buffers,Cargo.lock
+Observatory,opentelemetry,0.27,-,Project,Direct,-,OTLP,DEPENDENCY_ANALYSIS.md
+Observatory,tracing,0.1,-,Project,Direct,-,Structured Logging,DEPENDENCY_ANALYSIS.md
+Observatory,metrics,0.24,-,Project,Direct,-,Metrics Collection,DEPENDENCY_ANALYSIS.md
+Observatory,metrics-exporter-prometheus,0.16,-,Project,Direct,-,Prometheus HTTP,DEPENDENCY_ANALYSIS.md
+Sentinel,opentelemetry,0.27,-,Project,Direct,-,OTLP,DEPENDENCY_ANALYSIS.md
+Sentinel,tracing,0.1,-,Project,Direct,-,Structured Logging,DEPENDENCY_ANALYSIS.md
+Sentinel,tonic,0.12,-,Project,Direct,-,gRPC Transport,DEPENDENCY_ANALYSIS.md
+Sentinel,prost,0.13,-,Project,Direct,-,Protocol Buffers,DEPENDENCY_ANALYSIS.md
+Shield,tracing,0.1,-,Project,Direct,-,Structured Logging,DEPENDENCY_ANALYSIS.md
+Shield,tracing-subscriber,0.3,-,Project,Direct,-,Log Subscriber,DEPENDENCY_ANALYSIS.md
+CostOps,tracing,0.1,-,Project,Direct,-,Structured Logging,DEPENDENCY_ANALYSIS.md
+CostOps,tracing-subscriber,0.3,-,Project,Direct,-,Log Subscriber,DEPENDENCY_ANALYSIS.md
+CostOps,metrics,0.21,-,Project,Direct,-,Metrics Collection,DEPENDENCY_ANALYSIS.md
+CostOps,metrics-exporter-prometheus,0.12,-,Project,Direct,-,Prometheus HTTP,DEPENDENCY_ANALYSIS.md
+Policy-Engine,opentelemetry,^0.21,rt-tokio,Project,Direct,-,OTLP,DEPENDENCY_ANALYSIS.md
+Policy-Engine,opentelemetry-jaeger,0.20,-,Project,Direct,-,Jaeger,DEPENDENCY_ANALYSIS.md
+Policy-Engine,tracing,0.1,-,Project,Direct,-,Structured Logging,DEPENDENCY_ANALYSIS.md
+Policy-Engine,metrics,0.21,-,Project,Direct,-,Metrics Collection,DEPENDENCY_ANALYSIS.md
+Policy-Engine,metrics-exporter-prometheus,0.13,-,Project,Direct,-,Prometheus HTTP,DEPENDENCY_ANALYSIS.md
+Policy-Engine,tonic,0.11,-,Project,Direct,-,gRPC Transport,DEPENDENCY_ANALYSIS.md
+Policy-Engine,prost,0.12,-,Project,Direct,-,Protocol Buffers,DEPENDENCY_ANALYSIS.md
+Connector-Hub,tracing,0.1,-,Project,Direct,-,Structured Logging,DEPENDENCY_ANALYSIS.md
+Connector-Hub,tracing-subscriber,0.3,-,Project,Direct,-,Log Subscriber,DEPENDENCY_ANALYSIS.md
