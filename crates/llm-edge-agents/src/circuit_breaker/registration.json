@@ -1,0 +1,189 @@
+{
+  "$schema": "https://agentics.dev/schemas/agent-registration/v1.json",
+  "agent": {
+    "id": "circuit_breaker_agent",
+    "name": "Circuit Breaker Agent",
+    "version": "0.1.0",
+    "description": "Prevent cascading failures by blocking execution paths when thresholds are exceeded",
+    "classification": {
+      "type": "PROTECTION",
+      "subtype": "GUARD"
+    },
+    "decision_type": "circuit_breaker_decision"
+  },
+  "repository": {
+    "name": "LLM-Edge-Agent",
+    "path": "crates/llm-edge-agents/src/circuit_breaker"
+  },
+  "deployment": {
+    "platform": "gcp-edge-functions",
+    "service": "llm-edge-agent",
+    "runtime": "rust",
+    "stateless": true
+  },
+  "contracts": {
+    "input_schema": "llm_edge_agents::circuit_breaker::types::CircuitBreakerRequest",
+    "output_schema": "llm_edge_agents::circuit_breaker::types::CircuitBreakerResponse",
+    "decision_event_schema": "llm_edge_agents::contracts::DecisionEvent"
+  },
+  "persistence": {
+    "type": "ruvector-service",
+    "local_persistence": false,
+    "direct_sql": false
+  },
+  "invocation": {
+    "upstream_systems": [
+      "LLM-Orchestrator"
+    ],
+    "may_invoke": [
+      "LLM-Shield"
+    ],
+    "invoked_by": [
+      "LLM-Orchestrator"
+    ]
+  },
+  "cli": {
+    "binary": "circuit-breaker-cli",
+    "commands": [
+      {
+        "name": "test",
+        "description": "Test the circuit breaker with simulated signals",
+        "flags": [
+          "--provider-id",
+          "--failures",
+          "--successes",
+          "--failure-threshold",
+          "--success-threshold",
+          "--timeout-seconds",
+          "--format"
+        ]
+      },
+      {
+        "name": "simulate",
+        "description": "Simulate a specific scenario (dry-run, no persistence)",
+        "flags": [
+          "--provider-id",
+          "--state",
+          "--failures",
+          "--successes",
+          "--add-failure",
+          "--add-success",
+          "--format"
+        ]
+      },
+      {
+        "name": "inspect",
+        "description": "Inspect agent configuration and state",
+        "flags": [
+          "--provider-id",
+          "--format"
+        ]
+      },
+      {
+        "name": "serve",
+        "description": "Start the HTTP server",
+        "flags": [
+          "--port",
+          "--host"
+        ]
+      }
+    ]
+  },
+  "http_endpoints": [
+    {
+      "path": "/invoke",
+      "method": "POST",
+      "description": "Main agent invocation"
+    },
+    {
+      "path": "/test",
+      "method": "POST",
+      "description": "Test scenario execution"
+    },
+    {
+      "path": "/simulate",
+      "method": "POST",
+      "description": "Dry-run simulation"
+    },
+    {
+      "path": "/inspect/:provider_id",
+      "method": "GET",
+      "description": "Inspect state and config"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "description": "Health check"
+    },
+    {
+      "path": "/metrics",
+      "method": "GET",
+      "description": "Prometheus metrics"
+    }
+  ],
+  "telemetry": {
+    "tracing": true,
+    "opentelemetry": true,
+    "prometheus_metrics": true,
+    "observatory_compatible": true
+  },
+  "environment_variables": [
+    {
+      "name": "RUVECTOR_ENABLED",
+      "default": "false",
+      "description": "Enable persistence to ruvector-service"
+    },
+    {
+      "name": "RUVECTOR_ENDPOINT",
+      "default": "http://localhost:3000",
+      "description": "ruvector-service endpoint URL"
+    },
+    {
+      "name": "RUVECTOR_API_KEY",
+      "default": null,
+      "description": "API key for ruvector-service authentication"
+    },
+    {
+      "name": "CB_FAILURE_THRESHOLD",
+      "default": "5",
+      "description": "Default failure threshold before opening circuit"
+    },
+    {
+      "name": "CB_SUCCESS_THRESHOLD",
+      "default": "3",
+      "description": "Default success threshold for circuit recovery"
+    },
+    {
+      "name": "CB_TIMEOUT_SECONDS",
+      "default": "30",
+      "description": "Default timeout before half-open transition"
+    }
+  ],
+  "non_responsibilities": [
+    "Perform orchestration",
+    "Modify policies dynamically",
+    "Trigger retries directly",
+    "Emit alerts",
+    "Perform analytics",
+    "Persist state locally",
+    "Execute SQL directly",
+    "Connect to Google SQL directly"
+  ],
+  "constraints": {
+    "decision_confidence": {
+      "type": "deterministic",
+      "value": 1.0,
+      "description": "All decisions are threshold-based"
+    }
+  },
+  "metadata": {
+    "created_at": "2024-01-20",
+    "prompts": ["PROMPT-0", "PROMPT-1", "PROMPT-2", "PROMPT-3", "PROMPT-4"],
+    "compliance": {
+      "infrastructure_constitution": true,
+      "contract_boundary": true,
+      "runtime_implementation": true,
+      "platform_wiring": true
+    }
+  }
+}

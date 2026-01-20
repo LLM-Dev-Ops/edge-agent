@@ -1,0 +1,25 @@
+[package]
+name = "agentics-contracts"
+version = "0.1.0"
+edition = "2021"
+authors = ["LLM Edge Agent Team"]
+license = "Apache-2.0"
+description = "Shared schemas, policies, and execution envelopes for Agentics Dev platform"
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"

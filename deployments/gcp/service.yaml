@@ -1,0 +1,122 @@
+# Cloud Run Service Configuration for LLM-Edge-Agent
+#
+# This file defines the Cloud Run service specification.
+# Deploy with: gcloud run services replace service.yaml --region=us-central1
+#
+# NOTE: Update PROJECT_ID placeholder before deployment
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: llm-edge-agent
+  labels:
+    app: llm-edge-agent
+    team: agentics-platform
+    tier: runtime-control
+  annotations:
+    run.googleapis.com/description: "LLM Edge Agent - Runtime interception, routing, and execution control"
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Autoscaling configuration
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        # CPU allocation
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/startup-cpu-boost: "true"
+        # Execution environment
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 60
+      serviceAccountName: llm-edge-agent-sa@PROJECT_ID.iam.gserviceaccount.com
+      containers:
+        - name: llm-edge-agent
+          image: gcr.io/PROJECT_ID/llm-edge-agent:latest
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            # =================================================================
+            # REQUIRED Environment Variables
+            # =================================================================
+            - name: PLATFORM_ENV
+              value: "prod"
+            - name: SERVICE_NAME
+              value: "llm-edge-agent"
+            - name: SERVICE_VERSION
+              value: "0.1.0"
+
+            # =================================================================
+            # RuVector Service Configuration (Persistence Layer)
+            # =================================================================
+            - name: RUVECTOR_SERVICE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ruvector-config
+                  key: service-url
+            - name: RUVECTOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ruvector-config
+                  key: api-key
+
+            # =================================================================
+            # Telemetry Configuration (LLM-Observatory)
+            # =================================================================
+            - name: TELEMETRY_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: telemetry-config
+                  key: endpoint
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: telemetry-config
+                  key: endpoint
+
+            # =================================================================
+            # Logging Configuration
+            # =================================================================
+            - name: RUST_LOG
+              value: "llm_edge_agents=info,tower_http=info"
+            - name: RUST_BACKTRACE
+              value: "0"
+
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 10
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+  traffic:
+    - percent: 100
+      latestRevision: true

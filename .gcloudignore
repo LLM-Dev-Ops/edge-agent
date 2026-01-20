@@ -1,0 +1,49 @@
+# Ignore files for gcloud builds submit
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+target/
+dist/
+node_modules/
+
+# Documentation (not needed for build)
+*.md
+!README.md
+
+# Local config files
+.env
+.env.*
+*.local
+
+# Test files (not needed for build)
+**/*_test.rs
+**/tests/
+test/
+tests/
+
+# Editor backups
+*~
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Claude config (not needed for build)
+.claude/
+.claude-flow/
+
+# MCP config (not needed for build)
+.mcp.json

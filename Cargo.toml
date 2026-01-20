@@ -45,6 +45,8 @@ members = [
     "crates/llm-edge-security",
     "crates/llm-edge-monitoring",
     "crates/llm-edge-integrations",
+    "crates/llm-edge-agents",
+    "crates/agentics-contracts",
 ]
 resolver = "2"
 

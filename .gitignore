@@ -49,3 +49,9 @@ secrets/
 
 # Local configuration overrides
 config/local.yaml
+
+# Claude Code / Claude Flow
+.claude/
+.claude-flow/
+.mcp.json
+CLAUDE.md
