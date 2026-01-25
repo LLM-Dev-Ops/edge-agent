@@ -1,0 +1,116 @@
+# Cloud Build Configuration for LLM-Edge-Agent - Phase 3 Layer 1
+#
+# Phase 3 - Automation & Resilience (Layer 1)
+#
+# Builds and deploys the Phase 3 hardened unified service to Cloud Run.
+#
+# Trigger: Push to main branch with tag matching 'phase3-*'
+# Or: Manual trigger with substitutions
+#
+# Required Secrets:
+#   - RUVECTOR_API_KEY in Secret Manager (vault)
+
+steps:
+  # Step 1: Build the Phase 3 Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-phase3'
+    args:
+      - 'build'
+      - '--build-arg=BINARY_TARGET=llm-edge-agent-phase3'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/llm-edge-agent:phase3'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/llm-edge-agent:phase3-$SHORT_SHA'
+      - '-f'
+      - 'deployments/gcp/Dockerfile.phase3'
+      - '.'
+
+  # Step 2: Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-phase3'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/llm-edge-agent:phase3'
+    waitFor: ['build-phase3']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-phase3-sha'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/llm-edge-agent:phase3-$SHORT_SHA'
+    waitFor: ['build-phase3']
+
+  # Step 3: Deploy to Cloud Run with secrets from Secret Manager
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-phase3'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'llm-edge-agent-phase3'
+      - '--image=gcr.io/$PROJECT_ID/llm-edge-agent:phase3'
+      - '--region=$_REGION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=AGENT_PHASE=phase3,AGENT_LAYER=layer1,MAX_TOKENS=1500,MAX_LATENCY_MS=3000,MAX_CALLS_PER_RUN=4'
+      - '--set-secrets=RUVECTOR_API_KEY=ruvector-api-key:latest,RUVECTOR_SERVICE_URL=ruvector-service-url:latest,TELEMETRY_ENDPOINT=TELEMETRY_ENDPOINT:latest'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--timeout=60s'
+      - '--concurrency=80'
+    waitFor: ['push-phase3']
+
+  # Step 4: Verify deployment
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'verify-phase3'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Verifying Phase 3 deployment..."
+        SVC_URL=$$(gcloud run services describe llm-edge-agent-phase3 --region=$_REGION --format='value(status.url)')
+        echo "Service URL: $$SVC_URL"
+
+        # Wait for service to be ready
+        sleep 10
+
+        # Check health endpoint
+        HEALTH_STATUS=$$(curl -s -o /dev/null -w "%{http_code}" $$SVC_URL/health/live)
+        if [ "$$HEALTH_STATUS" -ne 200 ]; then
+          echo "ERROR: Health check failed with status $$HEALTH_STATUS"
+          exit 1
+        fi
+        echo "Health check passed: $$HEALTH_STATUS"
+
+        # Check Phase 3 status endpoint
+        PHASE3_STATUS=$$(curl -s $$SVC_URL/phase3/status)
+        echo "Phase 3 Status: $$PHASE3_STATUS"
+
+        # Verify phase and layer
+        if echo "$$PHASE3_STATUS" | grep -q '"phase":"phase3"' && echo "$$PHASE3_STATUS" | grep -q '"layer":"layer1"'; then
+          echo "Phase 3 Layer 1 verification PASSED"
+        else
+          echo "ERROR: Phase 3 Layer 1 verification FAILED"
+          exit 1
+        fi
+    waitFor: ['deploy-phase3']
+
+substitutions:
+  _REGION: us-central1
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1800s'
+
+images:
+  - 'gcr.io/$PROJECT_ID/llm-edge-agent:phase3'
+  - 'gcr.io/$PROJECT_ID/llm-edge-agent:phase3-$SHORT_SHA'
+
+tags:
+  - 'llm-edge-agent'
+  - 'phase3'
+  - 'layer1'

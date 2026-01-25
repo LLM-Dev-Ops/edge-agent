@@ -56,6 +56,7 @@ pub mod contracts;
 pub mod error;
 pub mod execution_guard;
 pub mod failover;
+pub mod phase3;
 pub mod tool_invocation;
 
 // Re-exports
@@ -106,6 +107,14 @@ pub use caching_strategy::{
     CachingStrategyAgent, CacheStrategyConfig, CacheStrategyRequest, CacheStrategyResponse,
     CacheValidationResult, CacheKeyStrategy, cache_strategy_router,
     CacheStrategyHandlerState,
+};
+
+// Phase 3 - Automation & Resilience (Layer 1) exports
+pub use phase3::{
+    Phase3Config, Phase3StartupGuard, StartupError,
+    PerformanceBudget, BudgetEnforcer, BudgetViolation,
+    Phase3Signal, SignalType, SignalEmitter, SignalReference,
+    ExecutionRoleGuard, RoleViolation, AgentRole,
 };
 
 /// Agent version for DecisionEvent tracking

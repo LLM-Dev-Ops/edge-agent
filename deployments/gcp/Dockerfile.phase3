@@ -1,0 +1,78 @@
+# Dockerfile for LLM-Edge-Agent Phase 3 Layer 1
+#
+# Phase 3 - Automation & Resilience (Layer 1)
+#
+# Multi-stage build for optimized production image
+# Includes crashloop behavior on misconfiguration
+
+# =============================================================================
+# Stage 1: Builder
+# =============================================================================
+FROM rust:1.83-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy manifests first for dependency caching
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ crates/
+
+# Build dependencies (cached layer)
+RUN cargo build --release --package llm-edge-agents --bin llm-edge-agent-phase3 2>/dev/null || true
+
+# Copy source and build
+COPY src/ src/
+
+# Build the Phase 3 binary
+RUN cargo build --release --package llm-edge-agents --bin llm-edge-agent-phase3
+
+# =============================================================================
+# Stage 2: Runtime
+# =============================================================================
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r llm-agent && useradd -r -g llm-agent -u 1001 llm-agent
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/target/release/llm-edge-agent-phase3 /usr/local/bin/llm-edge-agent
+
+# Set ownership
+RUN chown -R llm-agent:llm-agent /app
+
+# Switch to non-root user
+USER llm-agent
+
+# Expose ports
+EXPOSE 8080 9090
+
+# Phase 3 Layer 1 environment defaults
+# These MUST be overridden in deployment for proper Phase 3 operation
+# Service will crashloop if AGENT_PHASE != "phase3" or AGENT_LAYER != "layer1"
+ENV AGENT_PHASE=phase3 \
+    AGENT_LAYER=layer1 \
+    MAX_TOKENS=1500 \
+    MAX_LATENCY_MS=3000 \
+    MAX_CALLS_PER_RUN=4 \
+    RUST_LOG=llm_edge_agents=info,tower_http=info \
+    PORT=8080
+
+# Health check
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health/live || exit 1
+
+# Entry point
+ENTRYPOINT ["/usr/local/bin/llm-edge-agent"]

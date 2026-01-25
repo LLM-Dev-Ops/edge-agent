@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ ./crates/
 
-# Build release binary
-RUN cargo build --release --package llm-edge-agent
+# Build release binary - Phase 3 Unified Service
+RUN cargo build --release --package llm-edge-agents --bin llm-edge-agent-phase3
 
 # Stage 2: Production
 FROM debian:bookworm-slim
@@ -35,8 +35,8 @@ RUN groupadd -g 1001 llm-agent && \
 
 WORKDIR /app
 
-# Copy built binary from builder
-COPY --from=builder /app/target/release/llm-edge-agent /usr/local/bin/llm-edge-agent
+# Copy built binary from builder - Phase 3 Unified Service
+COPY --from=builder /app/target/release/llm-edge-agent-phase3 /usr/local/bin/llm-edge-agent
 
 # Create necessary directories
 RUN mkdir -p /var/log/llm-edge-agent /etc/llm-edge-agent /cache && \
@@ -54,13 +54,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # 9090: Metrics port
 EXPOSE 8080 9090
 
-# Environment variables (can be overridden)
-ENV SERVER_ADDRESS=0.0.0.0:8080 \
-    LOG_LEVEL=info \
-    ENABLE_METRICS=true \
-    METRICS_PORT=9090 \
-    AUTH_ENABLED=true \
-    RATE_LIMIT_ENABLED=true
+# Phase 3 Layer 1 Environment variables
+ENV AGENT_PHASE=phase3 \
+    AGENT_LAYER=layer1 \
+    MAX_TOKENS=1500 \
+    MAX_LATENCY_MS=3000 \
+    MAX_CALLS_PER_RUN=4 \
+    RUST_LOG=llm_edge_agents=info,tower_http=info \
+    SERVER_ADDRESS=0.0.0.0:8080
 
 # Start application
 ENTRYPOINT ["/usr/local/bin/llm-edge-agent"]

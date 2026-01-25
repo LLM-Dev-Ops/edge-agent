@@ -1,0 +1,160 @@
+# Cloud Run Service Configuration for LLM-Edge-Agent - Phase 3 Layer 1
+#
+# Phase 3 - Automation & Resilience (Layer 1)
+#
+# Deploy with:
+#   gcloud run services replace deployments/gcp/service-phase3.yaml \
+#     --region=us-central1 \
+#     --set-secrets=RUVECTOR_API_KEY=ruvector-api-key:latest
+#
+# NOTE: Update PROJECT_ID placeholder before deployment
+#
+# Phase 3 Requirements Enforced:
+# - AGENT_PHASE=phase3, AGENT_LAYER=layer1
+# - RuVector REQUIRED (from Secret Manager)
+# - Performance budgets: MAX_TOKENS=1500, MAX_LATENCY_MS=3000, MAX_CALLS_PER_RUN=4
+# - Crashloop on misconfiguration
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: llm-edge-agent-phase3
+  labels:
+    app: llm-edge-agent
+    team: agentics-platform
+    tier: runtime-control
+    phase: phase3
+    layer: layer1
+  annotations:
+    run.googleapis.com/description: "LLM Edge Agent - Phase 3 Automation & Resilience Layer 1"
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Autoscaling configuration
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        # CPU allocation
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/startup-cpu-boost: "true"
+        # Execution environment
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 60
+      serviceAccountName: llm-edge-agent-sa@PROJECT_ID.iam.gserviceaccount.com
+      containers:
+        - name: llm-edge-agent-phase3
+          image: gcr.io/PROJECT_ID/llm-edge-agent:phase3
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            # =================================================================
+            # PHASE 3 LAYER 1 REQUIRED CONFIGURATION
+            # Service will crashloop if these are not correctly set
+            # =================================================================
+            - name: AGENT_PHASE
+              value: "phase3"
+            - name: AGENT_LAYER
+              value: "layer1"
+
+            # =================================================================
+            # PERFORMANCE BUDGETS (Phase 3 Defaults)
+            # =================================================================
+            - name: MAX_TOKENS
+              value: "1500"
+            - name: MAX_LATENCY_MS
+              value: "3000"
+            - name: MAX_CALLS_PER_RUN
+              value: "4"
+
+            # =================================================================
+            # STANDARD Environment Variables
+            # =================================================================
+            - name: PLATFORM_ENV
+              value: "prod"
+            - name: SERVICE_NAME
+              value: "llm-edge-agent"
+            - name: SERVICE_VERSION
+              value: "0.1.0"
+
+            # =================================================================
+            # RuVector Service Configuration (REQUIRED - Persistence Layer)
+            # Service will HARD FAIL if RuVector is unavailable
+            # =================================================================
+            - name: RUVECTOR_SERVICE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ruvector-config
+                  key: service-url
+            - name: RUVECTOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ruvector-config
+                  key: api-key
+
+            # =================================================================
+            # Telemetry Configuration (LLM-Observatory)
+            # =================================================================
+            - name: TELEMETRY_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: telemetry-config
+                  key: endpoint
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: telemetry-config
+                  key: endpoint
+
+            # =================================================================
+            # Logging Configuration
+            # =================================================================
+            - name: RUST_LOG
+              value: "llm_edge_agents=info,tower_http=info"
+            - name: RUST_BACKTRACE
+              value: "0"
+
+            # =================================================================
+            # Startup Configuration
+            # =================================================================
+            - name: STARTUP_TIMEOUT_SECS
+              value: "30"
+
+          # Startup probe - allows time for Phase 3 validation
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 10
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+  traffic:
+    - percent: 100
+      latestRevision: true

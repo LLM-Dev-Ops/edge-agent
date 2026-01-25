@@ -84,6 +84,10 @@ path = "src/bin/caching_strategy_cli.rs"
 name = "llm-edge-agent-unified"
 path = "src/bin/unified_service.rs"
 
+[[bin]]
+name = "llm-edge-agent-phase3"
+path = "src/bin/unified_service_phase3.rs"
+
 [dependencies.tower-http]
 version = "0.6"
 features = ["trace", "timeout"]
