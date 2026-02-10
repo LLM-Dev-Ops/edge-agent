@@ -64,6 +64,10 @@ pub enum AgentError {
     /// Configuration error (alias for circuit breaker compatibility)
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
+
+    /// Missing required execution span context
+    #[error("Missing required execution context field: {0}")]
+    MissingSpanContext(String),
 }
 
 /// Result type for agent operations
@@ -88,6 +92,7 @@ impl AgentError {
             AgentError::RuVectorError(_) => "RUVECTOR_ERROR",
             AgentError::ValidationError(_) => "VALIDATION_ERROR",
             AgentError::ConfigurationError(_) => "CONFIGURATION_ERROR",
+            AgentError::MissingSpanContext(_) => "MISSING_SPAN_CONTEXT",
         }
     }
 
@@ -109,6 +114,7 @@ impl AgentError {
             AgentError::RuVectorError(_) => 0.6,
             AgentError::ValidationError(_) => 0.3,
             AgentError::ConfigurationError(_) => 0.7,
+            AgentError::MissingSpanContext(_) => 1.0,
         }
     }
 }

@@ -57,6 +57,7 @@ pub mod error;
 pub mod execution_guard;
 pub mod failover;
 pub mod phase3;
+pub mod span_instrumentation;
 pub mod tool_invocation;
 
 // Re-exports
@@ -65,6 +66,7 @@ pub use contracts::{
     ExecutionContext, InvocationConstraint,
 };
 pub use error::{AgentError, AgentResult};
+pub use span_instrumentation::with_agent_span;
 
 // Failover Agent exports
 pub use failover::{

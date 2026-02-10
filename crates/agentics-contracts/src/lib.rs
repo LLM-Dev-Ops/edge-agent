@@ -11,12 +11,14 @@
 //! - `execution`: Execution envelope and context schemas
 //! - `policy`: Policy definitions and constraints
 //! - `telemetry`: Telemetry event schemas compatible with LLM-Observatory
+//! - `spans`: Execution span types for Agentics Foundational Execution Unit tracking
 
 pub mod cache;
 pub mod circuit_breaker;
 pub mod decision;
 pub mod execution;
 pub mod policy;
+pub mod spans;
 pub mod telemetry;
 
 pub use cache::{
@@ -45,4 +47,5 @@ pub use circuit_breaker::{
 pub use decision::{DecisionEvent, DecisionOutcome, DecisionType};
 pub use execution::{ExecutionContext, ExecutionEnvelope, ExecutionRef};
 pub use policy::{PolicyConstraint, PolicyRule, PolicyViolation};
+pub use spans::{ExecutionSpan, SpanArtifact, SpanCollector, SpanGraph, SpanStatus, SpanType};
 pub use telemetry::{TelemetryEvent, TelemetryLevel};

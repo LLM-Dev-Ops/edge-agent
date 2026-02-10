@@ -89,6 +89,16 @@ pub struct ExecutionContext {
     /// Unique execution reference (trace ID)
     pub execution_ref: String,
 
+    /// Execution ID from the Agentics execution system.
+    /// Required for instrumented calls from a Core.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_id: Option<String>,
+
+    /// Parent span ID from the calling execution unit (Core).
+    /// Required for instrumented calls; rejected at HTTP boundary if missing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_span_id: Option<String>,
+
     /// Request ID for correlation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_id: Option<String>,
@@ -119,6 +129,8 @@ impl ExecutionContext {
     pub fn new() -> Self {
         Self {
             execution_ref: Uuid::new_v4().to_string(),
+            execution_id: None,
+            parent_span_id: None,
             request_id: None,
             tenant_id: None,
             user_id: None,
