@@ -26,11 +26,11 @@ use std::time::Duration;
 use axum::{
     extract::State,
     http::StatusCode,
-    response::IntoResponse,
-    routing::get,
+    response::{IntoResponse, Response},
+    routing::{get, post},
     Json, Router,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -198,6 +198,77 @@ async fn main() {
     }
 }
 
+// =============================================================================
+// Internal Core-Bundle Fanout Endpoint
+// =============================================================================
+
+/// Inbound event from security-core bundle fanout.
+#[derive(Debug, Deserialize)]
+struct ToolExecutionAuditRequest {
+    source: String,
+    event_type: String,
+    execution_id: String,
+    timestamp: String,
+    payload: serde_json::Value,
+}
+
+/// Handler for POST /agents/tool-invocation/execute
+///
+/// Internal-only endpoint consumed by security-core bundle fanout.
+/// Accepts tool execution audit events, logs them, and processes asynchronously.
+/// Returns 202 Accepted immediately.
+async fn tool_execution_audit_handler(
+    Json(request): Json<ToolExecutionAuditRequest>,
+) -> Response {
+    let execution_id = request.execution_id.clone();
+
+    info!(
+        execution_id = %execution_id,
+        source = %request.source,
+        event_type = %request.event_type,
+        timestamp = %request.timestamp,
+        "Received tool execution audit event"
+    );
+
+    // Process asynchronously - don't block the response
+    tokio::spawn(async move {
+        info!(
+            execution_id = %request.execution_id,
+            source = %request.source,
+            "Processing tool execution audit event"
+        );
+
+        if let Err(e) = process_tool_execution_audit(&request).await {
+            error!(
+                execution_id = %request.execution_id,
+                error = %e,
+                "Failed to process tool execution audit event"
+            );
+        }
+    });
+
+    (
+        StatusCode::ACCEPTED,
+        Json(serde_json::json!({
+            "status": "accepted",
+            "execution_id": execution_id
+        })),
+    )
+        .into_response()
+}
+
+/// Async processing of tool execution audit events.
+async fn process_tool_execution_audit(request: &ToolExecutionAuditRequest) -> Result<(), String> {
+    info!(
+        execution_id = %request.execution_id,
+        source = %request.source,
+        event_type = %request.event_type,
+        payload_keys = ?request.payload.as_object().map(|o| o.keys().collect::<Vec<_>>()),
+        "Tool execution audit event processed"
+    );
+    Ok(())
+}
+
 /// Build the Phase 3 unified router with all hardening
 fn build_phase3_router(config: &Phase3Config, state: Phase3ServiceState) -> Router {
     // Build agent routers with Phase 3 constraints
@@ -216,6 +287,13 @@ fn build_phase3_router(config: &Phase3Config, state: Phase3ServiceState) -> Rout
         .route("/phase3/budgets", get(phase3_budgets_handler))
         .with_state(state);
 
+    // Internal core-bundle fanout routes (no span context required)
+    let internal_routes = Router::new()
+        .route(
+            "/agents/tool-invocation/execute",
+            post(tool_execution_audit_handler),
+        );
+
     // Build stateless routes and merge agent routers
     let stateless_routes = Router::new()
         .route("/health/live", get(liveness_handler))
@@ -228,6 +306,7 @@ fn build_phase3_router(config: &Phase3Config, state: Phase3ServiceState) -> Rout
 
     // Combine all routes and add middleware
     stateful_routes
+        .merge(internal_routes)
         .merge(stateless_routes)
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::timeout::TimeoutLayer::new(Duration::from_millis(

@@ -47,7 +47,7 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -450,6 +450,78 @@ async fn instrumented_caching_strategy_invoke(
 }
 
 // =============================================================================
+// Internal Core-Bundle Fanout Endpoint
+// =============================================================================
+
+/// Inbound event from security-core bundle fanout.
+#[derive(Debug, Deserialize)]
+struct ToolExecutionAuditRequest {
+    source: String,
+    event_type: String,
+    execution_id: String,
+    timestamp: String,
+    payload: serde_json::Value,
+}
+
+/// Handler for POST /agents/tool-invocation/execute
+///
+/// Internal-only endpoint consumed by security-core bundle fanout.
+/// Accepts tool execution audit events, logs them, and processes asynchronously.
+/// Returns 202 Accepted immediately.
+async fn tool_execution_audit_handler(
+    Json(request): Json<ToolExecutionAuditRequest>,
+) -> Response {
+    let execution_id = request.execution_id.clone();
+
+    info!(
+        execution_id = %execution_id,
+        source = %request.source,
+        event_type = %request.event_type,
+        timestamp = %request.timestamp,
+        "Received tool execution audit event"
+    );
+
+    // Process asynchronously - don't block the response
+    tokio::spawn(async move {
+        info!(
+            execution_id = %request.execution_id,
+            source = %request.source,
+            "Processing tool execution audit event"
+        );
+
+        // Future: forward to telemetry, persist via ruvector, etc.
+        if let Err(e) = process_tool_execution_audit(&request).await {
+            error!(
+                execution_id = %request.execution_id,
+                error = %e,
+                "Failed to process tool execution audit event"
+            );
+        }
+    });
+
+    (
+        StatusCode::ACCEPTED,
+        Json(serde_json::json!({
+            "status": "accepted",
+            "execution_id": execution_id
+        })),
+    )
+        .into_response()
+}
+
+/// Async processing of tool execution audit events.
+async fn process_tool_execution_audit(request: &ToolExecutionAuditRequest) -> Result<(), String> {
+    info!(
+        execution_id = %request.execution_id,
+        source = %request.source,
+        event_type = %request.event_type,
+        payload_keys = ?request.payload.as_object().map(|o| o.keys().collect::<Vec<_>>()),
+        "Tool execution audit event processed"
+    );
+    Ok(())
+}
+
+// =============================================================================
 // Router Construction
 // =============================================================================
 
@@ -496,36 +568,19 @@ fn build_unified_router(config: &ServiceConfig, state: ServiceState) -> Router {
         .with_state(agents)
         .layer(middleware::from_fn(execution_span_middleware));
 
-    // Non-instrumented agent routes (test/simulate/inspect/health per agent)
+    // Non-instrumented agent sub-routes (test/simulate/inspect/health per agent).
     // These remain accessible without span context for development and CLI use.
-    let tool_invocation_secondary = llm_edge_agents::tool_invocation::tool_invocation_handler();
-    let circuit_breaker_secondary = {
-        let agent = CircuitBreakerAgent::new(None);
-        llm_edge_agents::circuit_breaker::CircuitBreakerHandler::new(agent).router()
-    };
-    let failover_secondary = llm_edge_agents::failover::create_failover_router(
-        FailoverAgentConfig {
-            ruvector_url: config.ruvector_url.clone(),
-            emit_events: true,
-            ..Default::default()
-        },
-    );
-    let execution_guard_secondary = llm_edge_agents::execution_guard::execution_guard_handler();
-    let caching_strategy_secondary = {
-        let cfg = CacheStrategyConfig::default();
-        let agent = CachingStrategyAgent::new(cfg);
-        let handler_state = llm_edge_agents::caching_strategy::CacheStrategyHandlerState {
-            agent: Arc::new(agent),
-        };
-        llm_edge_agents::caching_strategy::cache_strategy_router(handler_state)
-    };
-
-    let secondary_routes = Router::new()
-        .nest("/agents/tool-invocation", tool_invocation_secondary)
-        .nest("/agents/circuit-breaker", circuit_breaker_secondary)
-        .nest("/agents/failover", failover_secondary)
-        .nest("/agents/execution-guard", execution_guard_secondary)
-        .nest("/agents/caching-strategy", caching_strategy_secondary);
+    //
+    // NOTE: We cannot nest the full agent handler routers here because each
+    // includes its primary invoke route (e.g. POST /invoke) which overlaps
+    // with the instrumented routes above. Axum 0.8 panics on route overlaps
+    // during merge. Instead, we nest the full routers ONLY for agents whose
+    // primary route path differs from the instrumented path (none currently),
+    // or we accept that test/simulate/inspect/health sub-routes are accessed
+    // through the individual agent CLIs and not exposed in the unified service.
+    //
+    // The instrumented routes above are the canonical entry points for all
+    // agent invocations in production.
 
     // Build stateful routes (these need ServiceState)
     let stateful_routes = Router::new()
@@ -534,18 +589,22 @@ fn build_unified_router(config: &ServiceConfig, state: ServiceState) -> Router {
         .route("/", get(service_info_handler))
         .with_state(state);
 
+    // Internal core-bundle fanout routes (no span context required)
+    let internal_routes = Router::new()
+        .route(
+            "/agents/tool-invocation/execute",
+            post(tool_execution_audit_handler),
+        );
+
     // Build stateless routes
     let stateless_routes = Router::new()
         .route("/health/live", get(liveness_handler))
         .route("/metrics", get(metrics_handler));
 
-    // Combine: instrumented routes take precedence (merged first),
-    // then secondary (nested) routes, then health/info.
-    // Axum resolves routes by specificity, so the flat instrumented routes
-    // match the primary invoke endpoints, while nested secondary routes
-    // match test/simulate/inspect/health sub-paths.
+    // Combine all route groups. Instrumented routes handle agent invocations,
+    // internal routes handle core-bundle fanout, health/info are stateful/stateless.
     instrumented_routes
-        .merge(secondary_routes)
+        .merge(internal_routes)
         .merge(stateful_routes)
         .merge(stateless_routes)
         .layer(tower_http::trace::TraceLayer::new_for_http())
