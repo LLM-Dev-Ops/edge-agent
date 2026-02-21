@@ -33,8 +33,9 @@
   },
   "main": "index.js",
   "scripts": {
-    "postinstall": "node scripts/install.js",
-    "prepack": "node scripts/prepack.js",
+    "postinstall": "node -e \"try{require('./scripts/install.js')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\"",
+    "prepack": "node -e \"try{require('./scripts/prepack.js')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\"",
+    "gcp-build": "",
     "test": "node test/cloud-functions.test.js",
     "test:cli": "node bin/cli.js --version",
     "test:integration": "npm run test && cargo test --workspace",
