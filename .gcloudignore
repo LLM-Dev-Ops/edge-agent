@@ -1,4 +1,5 @@
-# Ignore files for gcloud builds submit
+# Ignore files for gcloud functions deploy
+# Cloud Function: edge-agents (nodejs20)
 
 # Git
 .git/
@@ -10,9 +11,15 @@
 *.swp
 *.swo
 
-# Build artifacts
+# Rust build artifacts (not needed for Cloud Function)
 target/
 dist/
+Cargo.toml
+Cargo.lock
+crates/
+src/
+
+# Node modules (re-installed during deploy)
 node_modules/
 
 # Documentation (not needed for build)
@@ -24,11 +31,21 @@ node_modules/
 .env.*
 *.local
 
-# Test files (not needed for build)
+# Test files (not needed for deploy)
 **/*_test.rs
 **/tests/
 test/
 tests/
+
+# Deployment configs (not needed inside the function)
+deployments/
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Scripts not needed for Cloud Function
+scripts/
+bin/
 
 # Editor backups
 *~
@@ -41,9 +58,13 @@ Thumbs.db
 # Logs
 *.log
 
-# Claude config (not needed for build)
+# Claude config
 .claude/
 .claude-flow/
 
-# MCP config (not needed for build)
+# MCP config
 .mcp.json
+
+# Plans and docs directories
+plans/
+docs/

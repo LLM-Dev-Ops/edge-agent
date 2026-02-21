@@ -31,12 +31,13 @@
   "bin": {
     "llm-edge-agent": "bin/llm-edge-agent.js"
   },
-  "main": "bin/llm-edge-agent.js",
+  "main": "index.js",
   "scripts": {
     "postinstall": "node scripts/install.js",
     "prepack": "node scripts/prepack.js",
-    "test": "node bin/cli.js --version",
-    "test:integration": "npm test && cargo test --workspace",
+    "test": "node test/cloud-functions.test.js",
+    "test:cli": "node bin/cli.js --version",
+    "test:integration": "npm run test && cargo test --workspace",
     "build": "cargo build --release",
     "build:debug": "cargo build",
     "build:all": "npm run build:linux && npm run build:macos && npm run build:windows",
@@ -78,6 +79,7 @@
     "@llm-dev-ops/llm-edge-agent-windows-x64": "0.1.0"
   },
   "dependencies": {
+    "@google-cloud/functions-framework": "^3.4.0",
     "chalk": "^4.1.2",
     "claude-flow": "^2.7.41",
     "commander": "^12.0.0"
@@ -96,7 +98,7 @@
     "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=14.0.0",
+    "node": ">=20.0.0",
     "npm": ">=6.0.0"
   },
   "os": [
