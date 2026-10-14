@@ -37,7 +37,7 @@
     "prepack": "node -e \"try{require('./scripts/prepack.js')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\"",
     "gcp-build": "",
     "test": "node test/cloud-functions.test.js",
-    "test:cli": "node bin/cli.js --version",
+    "test:cli": "node bin/llm-edge-agent.js --version",
     "test:integration": "npm run test && cargo test --workspace",
     "build": "cargo build --release",
     "build:debug": "cargo build",
@@ -80,13 +80,12 @@
     "@llm-dev-ops/llm-edge-agent-windows-x64": "0.1.0"
   },
   "dependencies": {
-    "@google-cloud/functions-framework": "^3.4.0",
+    "@google-cloud/functions-framework": "^5.0.5",
     "chalk": "^4.1.2",
-    "claude-flow": "^2.7.41",
     "commander": "^12.0.0"
   },
-  "devDependencies": {
-    "tar": "^6.2.0"
+  "overrides": {
+    "uuid": "11.1.1"
   },
   "files": [
     "bin/*.js",

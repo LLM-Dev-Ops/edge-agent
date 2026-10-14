@@ -95,6 +95,61 @@ async function run() {
     assert.ok(res._headers['Access-Control-Allow-Origin']);
   });
 
+  await test('configured CORS allowlist reflects only the trusted origin', async () => {
+    const previous = process.env.CORS_ALLOWED_ORIGINS;
+    process.env.CORS_ALLOWED_ORIGINS = 'https://console.example, https://admin.example';
+
+    try {
+      const req = mockReq('GET', '/health', null, { origin: 'https://admin.example' });
+      const res = mockRes();
+      await handler(req, res);
+
+      assert.strictEqual(res._headers['Access-Control-Allow-Origin'], 'https://admin.example');
+      assert.strictEqual(res._headers.Vary, 'Origin');
+    } finally {
+      if (previous === undefined) delete process.env.CORS_ALLOWED_ORIGINS;
+      else process.env.CORS_ALLOWED_ORIGINS = previous;
+    }
+  });
+
+  await test('configured CORS allowlist does not grant an untrusted origin', async () => {
+    const previous = process.env.CORS_ALLOWED_ORIGINS;
+    process.env.CORS_ALLOWED_ORIGINS = 'https://console.example';
+
+    try {
+      const req = mockReq('GET', '/health', null, { origin: 'https://attacker.example' });
+      const res = mockRes();
+      await handler(req, res);
+
+      assert.strictEqual(res._status, 200);
+      assert.strictEqual(res._headers['Access-Control-Allow-Origin'], undefined);
+      assert.strictEqual(res._headers.Vary, 'Origin');
+    } finally {
+      if (previous === undefined) delete process.env.CORS_ALLOWED_ORIGINS;
+      else process.env.CORS_ALLOWED_ORIGINS = previous;
+    }
+  });
+
+  await test('preflight rejects an untrusted origin', async () => {
+    const previous = process.env.CORS_ALLOWED_ORIGINS;
+    process.env.CORS_ALLOWED_ORIGINS = 'https://console.example';
+
+    try {
+      const req = mockReq('OPTIONS', '/v1/edge/tool-invoke', null, {
+        origin: 'https://attacker.example',
+      });
+      const res = mockRes();
+      await handler(req, res);
+
+      assert.strictEqual(res._status, 403);
+      assert.strictEqual(res._body.error.code, 'ORIGIN_NOT_ALLOWED');
+      assert.strictEqual(res._headers['Access-Control-Allow-Origin'], undefined);
+    } finally {
+      if (previous === undefined) delete process.env.CORS_ALLOWED_ORIGINS;
+      else process.env.CORS_ALLOWED_ORIGINS = previous;
+    }
+  });
+
   // ── Health ────────────────────────────────────────────────────────────────
 
   console.log('\nHealth:');
