@@ -138,16 +138,28 @@ const executionGuardContract = {
           provider: { type: 'string' },
           input_tokens: { type: 'integer', minimum: 0 },
           max_output_tokens: { type: 'integer', minimum: 0 },
-          estimated_duration_ms: { type: 'integer' },
-          estimated_memory_bytes: { type: 'integer' },
-          estimated_cost_micros: { type: 'integer' },
+          estimated_duration_ms: { type: 'integer', minimum: 0 },
+          estimated_memory_bytes: { type: 'integer', minimum: 0 },
+          estimated_cost_micros: { type: 'integer', minimum: 0 },
           current_concurrency: { type: 'integer', minimum: 0 },
           metadata: { type: 'object' },
         },
       },
       context: { $ref: '#/definitions/executionContext' },
-      limits: { type: 'object' },
-      current_rate: { type: 'integer' },
+      limits: {
+        type: 'object',
+        properties: {
+          max_input_tokens: { type: 'integer', minimum: 0 },
+          max_output_tokens: { type: 'integer', minimum: 0 },
+          max_total_tokens: { type: 'integer', minimum: 0 },
+          max_cost_micros: { type: 'integer', minimum: 0 },
+          max_concurrency: { type: 'integer', minimum: 0 },
+          max_rate_per_minute: { type: 'integer', minimum: 0 },
+          allowed_models: { type: 'array', items: { type: 'string' } },
+          blocked_models: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      current_rate: { type: 'integer', minimum: 0 },
     },
   },
   response: {
@@ -268,22 +280,68 @@ const definitions = {
 };
 
 /**
- * Validate a request body against required fields.
+ * Enforce the schema subset used by the published agent contracts: local
+ * definition refs, object/array/scalar types, required fields, enum and minimum.
+ * This is not a general-purpose JSON Schema implementation. Unknown request
+ * properties remain permitted for forward compatibility; no coercion is used.
  * Returns { valid: true } or { valid: false, errors: [...] }.
  */
 function validateRequest(body, schema) {
-  if (!body || typeof body !== 'object') {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { valid: false, errors: ['Request body must be a JSON object'] };
   }
 
   const errors = [];
-  const required = schema.required || [];
-
-  for (const field of required) {
-    if (body[field] === undefined || body[field] === null) {
-      errors.push(`Missing required field: ${field}`);
+  let visited = 0;
+  function check(value, rule, path, depth) {
+    if (errors.length >= 32) return;
+    if (++visited > 10000 || depth > 32) {
+      errors.push('Request exceeds contract validation budget');
+      return;
+    }
+    if (rule.$ref) {
+      const prefix = '#/definitions/';
+      const name = rule.$ref.startsWith(prefix) ? rule.$ref.slice(prefix.length) : '';
+      if (!Object.hasOwn(definitions, name)) {
+        errors.push(`${path}: unsupported contract reference`);
+        return;
+      }
+      check(value, definitions[name], path, depth + 1);
+      return;
+    }
+    const matches = {
+      object: () => value !== null && typeof value === 'object' && !Array.isArray(value),
+      array: () => Array.isArray(value),
+      string: () => typeof value === 'string',
+      boolean: () => typeof value === 'boolean',
+      number: () => typeof value === 'number' && Number.isFinite(value),
+      integer: () => Number.isSafeInteger(value),
+    };
+    if (rule.type && (!Object.hasOwn(matches, rule.type) || !matches[rule.type]())) {
+      errors.push(`${path}: expected ${rule.type}`);
+      return;
+    }
+    if (rule.enum && !rule.enum.includes(value)) errors.push(`${path}: value is not allowed`);
+    if (rule.minimum !== undefined && value < rule.minimum) errors.push(`${path}: below minimum ${rule.minimum}`);
+    if (rule.type === 'object') {
+      for (const field of rule.required || []) {
+        if (!Object.hasOwn(value, field) || value[field] == null) {
+          errors.push(`Missing required field: ${path}.${field}`);
+          if (errors.length >= 32) return;
+        }
+      }
+      for (const [field, property] of Object.entries(rule.properties || {})) {
+        if (Object.hasOwn(value, field) && value[field] !== undefined) check(value[field], property, `${path}.${field}`, depth + 1);
+        if (errors.length >= 32) return;
+      }
+    } else if (rule.type === 'array' && rule.items) {
+      for (let i = 0; i < value.length; i++) {
+        check(value[i], rule.items, `${path}[${i}]`, depth + 1);
+        if (errors.length >= 32 || visited > 10000) return;
+      }
     }
   }
+  check(body, schema, 'body', 0);
 
   return errors.length > 0 ? { valid: false, errors } : { valid: true, errors: [] };
 }

@@ -1,0 +1,70 @@
+name: Edge Functions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Live Contract, Lineage and Replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20.19.5
+      - name: Prepare frozen parent and locked tools
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/edge-contract-baseline" 11da64cb7e409beac9b3c3647767715d6f0b7101
+          npm ci --ignore-scripts --prefix "$RUNNER_TEMP/edge-contract-baseline"
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix security/tools
+      - name: Execute both revisions, frozen anchors, signed replay and benchmark
+        run: |
+          mkdir -p contract-evidence
+          node security/evaluate-contract.mjs "$RUNNER_TEMP/edge-contract-baseline" "$PWD" "$PWD/security/tools" contract-evidence/flywheel.json
+          node security/benchmark-contract.cjs "$RUNNER_TEMP/edge-contract-baseline" "$PWD" contract-evidence/benchmark.json
+      - name: Retain project-only synthetic evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: edge-contract-replay
+          path: contract-evidence/*.json
+          if-no-files-found: error
+          retention-days: 30
+
+  node:
+    name: Node 20 validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20.19.5
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Cloud Function tests
+        run: npm test
+
+      - name: Verify CLI metadata
+        run: npm run test:cli
+
+      - name: Verify Functions Framework imports
+        run: node -e "require('@google-cloud/functions-framework'); require('cloudevents')"
+
+      - name: Audit dependencies
+        run: npm audit

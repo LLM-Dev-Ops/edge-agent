@@ -1,0 +1,9 @@
+{
+  "id": "edge-native-contract-validation-v1",
+  "baseline": "11da64cb7e409beac9b3c3647767715d6f0b7101",
+  "holdout": ["guard-envelope-string", "guard-missing-model", "guard-string-tokens", "guard-negative-tokens", "guard-fractional-tokens", "guard-string-cost", "guard-nonfinite-cost", "guard-string-concurrency", "guard-negative-rate", "guard-string-limit", "guard-null-limit", "guard-string-blocklist", "guard-invalid-allowlist-item", "tool-numeric-name", "tool-array-arguments", "circuit-invalid-state", "failover-missing-model", "failover-string-alternates", "cache-string-input", "cache-string-stream", "guard-default-concurrency"],
+  "anchor": ["guard-allow", "guard-token-block", "guard-cost-block", "guard-concurrency-block", "guard-rate-block", "guard-model-block", "tool-allow", "tool-block", "circuit-closed", "failover-primary", "cache-miss", "health"],
+  "acceptance": {"holdoutPasses": 21, "anchorPasses": 12, "originalAssertionsRetained": 33, "productionNpmFindings": 0, "newRuntimeDependencies": 0, "skippedTests": 0},
+  "budget": {"darwinGenerations": 1, "children": 2, "concurrency": 1, "nativeBenchmarkTrials": 5},
+  "scope": "Real Functions Framework HTTP listener, parser, exported Cloud Function and policy handlers on loopback; no network/scanner/persistence mocks or paid API/model calls. Does not validate Rust upstream execution or production IAM. No speedup/cost claim."
+}
