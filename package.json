@@ -36,7 +36,7 @@
     "postinstall": "node -e \"try{require('./scripts/install.js')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\"",
     "prepack": "node -e \"try{require('./scripts/prepack.js')}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e}\"",
     "gcp-build": "",
-    "test": "node test/cloud-functions.test.js",
+    "test": "node test/cloud-functions.test.js && node --test test/native-contract.test.cjs",
     "test:cli": "node bin/llm-edge-agent.js --version",
     "test:integration": "npm run test && cargo test --workspace",
     "build": "cargo build --release",
