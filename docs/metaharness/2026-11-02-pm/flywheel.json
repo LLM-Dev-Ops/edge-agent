@@ -1,0 +1,786 @@
+{
+  "measurements": {
+    "baseline": {
+      "revision": "bfb8e1904bfc0024d8e6a89c9f2fe7fbd7f3920e",
+      "tests": {
+        "args": [
+          "npm",
+          "test"
+        ],
+        "status": 0,
+        "signal": null,
+        "stdout": "\n> @llm-dev-ops/llm-edge-agent@0.1.0 test\n> node test/cloud-functions.test.js && node --test test/native-contract.test.cjs\n\n\n\u001b[1medge-agents Cloud Function tests\u001b[0m\n\nEntry point:\n  \u001b[32m✓\u001b[0m handler is exported as a function\n\nCORS:\n  \u001b[32m✓\u001b[0m OPTIONS returns 204 with CORS headers\n  \u001b[32m✓\u001b[0m non-OPTIONS responses include CORS headers\n  \u001b[32m✓\u001b[0m configured CORS allowlist reflects only the trusted origin\n  \u001b[32m✓\u001b[0m configured CORS allowlist does not grant an untrusted origin\n  \u001b[32m✓\u001b[0m preflight rejects an untrusted origin\n\nHealth:\n  \u001b[32m✓\u001b[0m GET /health returns 200 with all 5 agents\n  \u001b[32m✓\u001b[0m GET / aliases to health\n\nexecution_metadata:\n  \u001b[32m✓\u001b[0m response includes execution_metadata with required fields\n  \u001b[32m✓\u001b[0m x-correlation-id header is used as trace_id\n\nlayers_executed:\n  \u001b[32m✓\u001b[0m response includes layers_executed with AGENT_ROUTING\n  \u001b[32m✓\u001b[0m layers_executed includes agent-specific layer with duration_ms\n\nRouting:\n  \u001b[32m✓\u001b[0m all 5 routes are registered\n  \u001b[32m✓\u001b[0m unknown route returns 404\n\nContracts:\n  \u001b[32m✓\u001b[0m GET /v1/edge/contracts returns all 5 schemas\n\nTool Invocation Agent:\n  \u001b[32m✓\u001b[0m POST valid request returns allow\n  \u001b[32m✓\u001b[0m POST blocked tool returns 403\n  \u001b[32m✓\u001b[0m POST missing tool field returns 400\n  \u001b[32m✓\u001b[0m GET returns inspect metadata\n\nCircuit Breaker Agent:\n  \u001b[32m✓\u001b[0m POST closed circuit returns allow\n  \u001b[32m✓\u001b[0m POST open circuit returns block\n  \u001b[32m✓\u001b[0m POST failures trigger state transition to open\n\nFailover Agent:\n  \u001b[32m✓\u001b[0m POST healthy primary returns use_primary\n  \u001b[32m✓\u001b[0m POST unhealthy primary fails over to alternate\n  \u001b[32m✓\u001b[0m POST all targets down returns no_available_target\n\nExecution Guard Agent:\n  \u001b[32m✓\u001b[0m POST within limits returns allow\n  \u001b[32m✓\u001b[0m POST exceeding token limit returns block\n  \u001b[32m✓\u001b[0m POST blocked model returns block\n\nCaching Strategy Agent:\n  \u001b[32m✓\u001b[0m POST with cache hit returns cache_hit\n  \u001b[32m✓\u001b[0m POST with no cache entry returns cache_miss\n  \u001b[32m✓\u001b[0m POST streaming request returns cache_bypass\n  \u001b[32m✓\u001b[0m POST write operation returns cache_write\n\nError handling:\n  \u001b[32m✓\u001b[0m 404 response includes execution_metadata\n\n\u001b[1mResults: 33 passed, 0 failed\u001b[0m\n\n▶ native Functions Framework frozen contract\n  ✔ guard-envelope-string (0.714745ms)\n  ✔ guard-missing-model (0.075932ms)\n  ✔ guard-string-tokens (0.061721ms)\n  ✔ guard-negative-tokens (0.087179ms)\n  ✔ guard-fractional-tokens (0.104565ms)\n  ✔ guard-string-cost (0.165955ms)\n  ✔ guard-nonfinite-cost (0.06823ms)\n  ✔ guard-string-concurrency (0.073849ms)\n  ✔ guard-negative-rate (0.194306ms)\n  ✔ guard-string-limit (0.186805ms)\n  ✔ guard-null-limit (0.062762ms)\n  ✔ guard-string-blocklist (0.04063ms)\n  ✔ guard-invalid-allowlist-item (0.03439ms)\n  ✔ tool-numeric-name (0.030855ms)\n  ✔ tool-array-arguments (0.029884ms)\n  ✔ circuit-invalid-state (0.041811ms)\n  ✔ failover-missing-model (0.043545ms)\n  ✔ failover-string-alternates (0.044165ms)\n  ✔ cache-string-input (0.029424ms)\n  ✔ cache-string-stream (0.04056ms)\n  ✔ guard-default-concurrency (0.028371ms)\n  ✔ guard-allow (0.02665ms)\n  ✔ guard-token-block (0.036934ms)\n  ✔ guard-cost-block (0.044666ms)\n  ✔ guard-concurrency-block (0.030615ms)\n  ✔ guard-rate-block (0.025968ms)\n  ✔ guard-model-block (0.026018ms)\n  ✔ tool-allow (0.025828ms)\n  ✔ tool-block (0.026809ms)\n  ✔ circuit-closed (0.057595ms)\n  ✔ failover-primary (0.099557ms)\n  ✔ cache-miss (0.03376ms)\n  ✔ health (0.035412ms)\n✔ native Functions Framework frozen contract (161.02653ms)\n✔ required envelope fields must be own properties (0.10155ms)\n✔ integer validation rejects unsafe values and nonfinite values without coercion (0.139426ms)\n✔ validation work and diagnostic counts are bounded (0.298631ms)\n✔ valid opaque arguments and optional unknown properties are preserved (0.107638ms)\nℹ tests 38\nℹ suites 0\nℹ pass 38\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 258.097786\n",
+        "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+      },
+      "audit": {
+        "args": [
+          "npm",
+          "audit",
+          "--json"
+        ],
+        "status": 1,
+        "signal": null,
+        "stdout": "{\n  \"auditReportVersion\": 2,\n  \"vulnerabilities\": {\n    \"body-parser\": {\n      \"name\": \"body-parser\",\n      \"severity\": \"high\",\n      \"isDirect\": false,\n      \"via\": [\n        {\n          \"source\": 1243074,\n          \"name\": \"body-parser\",\n          \"dependency\": \"body-parser\",\n          \"title\": \"body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body\",\n          \"url\": \"https://github.com/advisories/GHSA-27r3-jxmh-p828\",\n          \"severity\": \"high\",\n          \"cwe\": [\n            \"CWE-248\"\n          ],\n          \"cvss\": {\n            \"score\": 7.5,\n            \"vectorString\": \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H\"\n          },\n          \"range\": \">=2.0.0 <2.4.0\"\n        }\n      ],\n      \"effects\": [],\n      \"range\": \"2.0.0 - 2.3.0\",\n      \"nodes\": [\n        \"node_modules/body-parser\"\n      ],\n      \"fixAvailable\": true\n    },\n    \"fast-uri\": {\n      \"name\": \"fast-uri\",\n      \"severity\": \"moderate\",\n      \"isDirect\": false,\n      \"via\": [\n        {\n          \"source\": 1243098,\n          \"name\": \"fast-uri\",\n          \"dependency\": \"fast-uri\",\n          \"title\": \"fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding\",\n          \"url\": \"https://github.com/advisories/GHSA-w74x-v6f9-j3xg\",\n          \"severity\": \"moderate\",\n          \"cwe\": [\n            \"CWE-172\",\n            \"CWE-180\"\n          ],\n          \"cvss\": {\n            \"score\": 6.1,\n            \"vectorString\": \"CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N\"\n          },\n          \"range\": \">=3.0.0 <3.1.9\"\n        },\n        {\n          \"source\": 1243101,\n          \"name\": \"fast-uri\",\n          \"dependency\": \"fast-uri\",\n          \"title\": \"fast-uri vulnerable to improper path equivalence in relative reference normalization\",\n          \"url\": \"https://github.com/advisories/GHSA-xhq7-xmqj-769h\",\n          \"severity\": \"low\",\n          \"cwe\": [\n            \"CWE-41\"\n          ],\n          \"cvss\": {\n            \"score\": 3.7,\n            \"vectorString\": \"CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N\"\n          },\n          \"range\": \">=3.0.0 <3.1.9\"\n        },\n        {\n          \"source\": 1243104,\n          \"name\": \"fast-uri\",\n          \"dependency\": \"fast-uri\",\n          \"title\": \"fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization\",\n          \"url\": \"https://github.com/advisories/GHSA-wjr9-j795-jxcr\",\n          \"severity\": \"moderate\",\n          \"cwe\": [\n            \"CWE-20\",\n            \"CWE-436\"\n          ],\n          \"cvss\": {\n            \"score\": 4.8,\n            \"vectorString\": \"CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N\"\n          },\n          \"range\": \">=3.1.3 <3.1.9\"\n        },\n        {\n          \"source\": 1243107,\n          \"name\": \"fast-uri\",\n          \"dependency\": \"fast-uri\",\n          \"title\": \"fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references\",\n          \"url\": \"https://github.com/advisories/GHSA-333x-w4r6-6crp\",\n          \"severity\": \"low\",\n          \"cwe\": [\n            \"CWE-41\",\n            \"CWE-116\"\n          ],\n          \"cvss\": {\n            \"score\": 3.7,\n            \"vectorString\": \"CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N\"\n          },\n          \"range\": \">=3.0.0 <3.1.9\"\n        }\n      ],\n      \"effects\": [],\n      \"range\": \"3.0.0 - 3.1.8\",\n      \"nodes\": [\n        \"node_modules/fast-uri\"\n      ],\n      \"fixAvailable\": true\n    },\n    \"qs\": {\n      \"name\": \"qs\",\n      \"severity\": \"moderate\",\n      \"isDirect\": false,\n      \"via\": [\n        {\n          \"source\": 1243687,\n          \"name\": \"qs\",\n          \"dependency\": \"qs\",\n          \"title\": \"qs : qs.stringify with arrayFormat 'comma' throws an uncaught TypeError on array elements carrying a non-callable own toString (DoS)\",\n          \"url\": \"https://github.com/advisories/GHSA-6pq8-jhm2-2vcw\",\n          \"severity\": \"moderate\",\n          \"cwe\": [\n            \"CWE-248\",\n            \"CWE-704\"\n          ],\n          \"cvss\": {\n            \"score\": 5.3,\n            \"vectorString\": \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L\"\n          },\n          \"range\": \">=6.7.0 <=6.16.0\"\n        }\n      ],\n      \"effects\": [],\n      \"range\": \"6.7.0 - 6.16.0\",\n      \"nodes\": [\n        \"node_modules/qs\"\n      ],\n      \"fixAvailable\": true\n    }\n  },\n  \"metadata\": {\n    \"vulnerabilities\": {\n      \"info\": 0,\n      \"low\": 0,\n      \"moderate\": 2,\n      \"high\": 1,\n      \"critical\": 0,\n      \"total\": 3\n    },\n    \"dependencies\": {\n      \"prod\": 135,\n      \"dev\": 0,\n      \"optional\": 6,\n      \"peer\": 0,\n      \"peerOptional\": 0,\n      \"total\": 140\n    }\n  }\n}\n",
+        "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+      },
+      "cli": {
+        "args": [
+          "npm",
+          "run",
+          "test:cli"
+        ],
+        "status": 0,
+        "signal": null,
+        "stdout": "\n> @llm-dev-ops/llm-edge-agent@0.1.0 test:cli\n> node bin/llm-edge-agent.js --version\n\n0.1.0\n",
+        "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+      },
+      "trials": [
+        {
+          "holdout": [
+            {
+              "name": "validity must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "staleness must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "cache key must be string",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "layer must be string",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "success must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "sensitivity must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "size must be nonnegative",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "latency must be numeric",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            }
+          ],
+          "anchor": [
+            {
+              "name": "valid hit",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "stale miss",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "valid write",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "sensitive bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "failed response bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "opaque forward fields",
+              "pass": true,
+              "actualStatus": 200
+            }
+          ]
+        },
+        {
+          "holdout": [
+            {
+              "name": "validity must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "staleness must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "cache key must be string",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "layer must be string",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "success must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "sensitivity must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "size must be nonnegative",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "latency must be numeric",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            }
+          ],
+          "anchor": [
+            {
+              "name": "valid hit",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "stale miss",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "valid write",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "sensitive bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "failed response bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "opaque forward fields",
+              "pass": true,
+              "actualStatus": 200
+            }
+          ]
+        },
+        {
+          "holdout": [
+            {
+              "name": "validity must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "staleness must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "cache key must be string",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "layer must be string",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "success must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "sensitivity must be boolean",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "size must be nonnegative",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            },
+            {
+              "name": "latency must be numeric",
+              "pass": false,
+              "actualStatus": 200,
+              "error": "Expected values to be strictly equal:\n\n200 !== 400\n"
+            }
+          ],
+          "anchor": [
+            {
+              "name": "valid hit",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "stale miss",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "valid write",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "sensitive bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "failed response bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "opaque forward fields",
+              "pass": true,
+              "actualStatus": 200
+            }
+          ]
+        }
+      ]
+    },
+    "candidate": {
+      "revision": "9abcfbb519edde742d0c733e37fad0b9f01a894e",
+      "tests": {
+        "args": [
+          "npm",
+          "test"
+        ],
+        "status": 0,
+        "signal": null,
+        "stdout": "\n> @llm-dev-ops/llm-edge-agent@0.1.0 test\n> node test/cloud-functions.test.js && node --test test/native-contract.test.cjs test/cache-metadata.test.cjs\n\n\n\u001b[1medge-agents Cloud Function tests\u001b[0m\n\nEntry point:\n  \u001b[32m✓\u001b[0m handler is exported as a function\n\nCORS:\n  \u001b[32m✓\u001b[0m OPTIONS returns 204 with CORS headers\n  \u001b[32m✓\u001b[0m non-OPTIONS responses include CORS headers\n  \u001b[32m✓\u001b[0m configured CORS allowlist reflects only the trusted origin\n  \u001b[32m✓\u001b[0m configured CORS allowlist does not grant an untrusted origin\n  \u001b[32m✓\u001b[0m preflight rejects an untrusted origin\n\nHealth:\n  \u001b[32m✓\u001b[0m GET /health returns 200 with all 5 agents\n  \u001b[32m✓\u001b[0m GET / aliases to health\n\nexecution_metadata:\n  \u001b[32m✓\u001b[0m response includes execution_metadata with required fields\n  \u001b[32m✓\u001b[0m x-correlation-id header is used as trace_id\n\nlayers_executed:\n  \u001b[32m✓\u001b[0m response includes layers_executed with AGENT_ROUTING\n  \u001b[32m✓\u001b[0m layers_executed includes agent-specific layer with duration_ms\n\nRouting:\n  \u001b[32m✓\u001b[0m all 5 routes are registered\n  \u001b[32m✓\u001b[0m unknown route returns 404\n\nContracts:\n  \u001b[32m✓\u001b[0m GET /v1/edge/contracts returns all 5 schemas\n\nTool Invocation Agent:\n  \u001b[32m✓\u001b[0m POST valid request returns allow\n  \u001b[32m✓\u001b[0m POST blocked tool returns 403\n  \u001b[32m✓\u001b[0m POST missing tool field returns 400\n  \u001b[32m✓\u001b[0m GET returns inspect metadata\n\nCircuit Breaker Agent:\n  \u001b[32m✓\u001b[0m POST closed circuit returns allow\n  \u001b[32m✓\u001b[0m POST open circuit returns block\n  \u001b[32m✓\u001b[0m POST failures trigger state transition to open\n\nFailover Agent:\n  \u001b[32m✓\u001b[0m POST healthy primary returns use_primary\n  \u001b[32m✓\u001b[0m POST unhealthy primary fails over to alternate\n  \u001b[32m✓\u001b[0m POST all targets down returns no_available_target\n\nExecution Guard Agent:\n  \u001b[32m✓\u001b[0m POST within limits returns allow\n  \u001b[32m✓\u001b[0m POST exceeding token limit returns block\n  \u001b[32m✓\u001b[0m POST blocked model returns block\n\nCaching Strategy Agent:\n  \u001b[32m✓\u001b[0m POST with cache hit returns cache_hit\n  \u001b[32m✓\u001b[0m POST with no cache entry returns cache_miss\n  \u001b[32m✓\u001b[0m POST streaming request returns cache_bypass\n  \u001b[32m✓\u001b[0m POST write operation returns cache_write\n\nError handling:\n  \u001b[32m✓\u001b[0m 404 response includes execution_metadata\n\n\u001b[1mResults: 33 passed, 0 failed\u001b[0m\n\n▶ cache metadata rejects malformed fields and preserves valid decisions\n  ✔ validity must be boolean (0.869403ms)\n  ✔ staleness must be boolean (0.153707ms)\n  ✔ cache key must be string (0.139546ms)\n  ✔ layer must be string (0.085406ms)\n  ✔ success must be boolean (0.079618ms)\n  ✔ sensitivity must be boolean (0.073348ms)\n  ✔ size must be nonnegative (0.079968ms)\n  ✔ latency must be numeric (0.091946ms)\n  ✔ valid hit (0.129341ms)\n  ✔ stale miss (0.141139ms)\n  ✔ valid write (0.119887ms)\n  ✔ sensitive bypass (0.065867ms)\n  ✔ failed response bypass (0.051706ms)\n  ✔ opaque forward fields (0.048813ms)\n✔ cache metadata rejects malformed fields and preserves valid decisions (173.117273ms)\n▶ native Functions Framework frozen contract\n  ✔ guard-envelope-string (0.834382ms)\n  ✔ guard-missing-model (0.08134ms)\n  ✔ guard-string-tokens (0.059558ms)\n  ✔ guard-negative-tokens (0.127908ms)\n  ✔ guard-fractional-tokens (0.091325ms)\n  ✔ guard-string-cost (0.055522ms)\n  ✔ guard-nonfinite-cost (0.148669ms)\n  ✔ guard-string-concurrency (0.14184ms)\n  ✔ guard-negative-rate (0.221267ms)\n  ✔ guard-string-limit (0.095802ms)\n  ✔ guard-null-limit (0.055161ms)\n  ✔ guard-string-blocklist (0.039429ms)\n  ✔ guard-invalid-allowlist-item (0.041612ms)\n  ✔ tool-numeric-name (0.034621ms)\n  ✔ tool-array-arguments (0.104685ms)\n  ✔ circuit-invalid-state (0.046389ms)\n  ✔ failover-missing-model (0.03361ms)\n  ✔ failover-string-alternates (0.029093ms)\n  ✔ cache-string-input (0.028432ms)\n  ✔ cache-string-stream (0.026149ms)\n  ✔ guard-default-concurrency (0.026569ms)\n  ✔ guard-allow (0.030005ms)\n  ✔ guard-token-block (0.031286ms)\n  ✔ guard-cost-block (0.026689ms)\n  ✔ guard-concurrency-block (0.123762ms)\n  ✔ guard-rate-block (0.035913ms)\n  ✔ guard-model-block (0.028392ms)\n  ✔ tool-allow (0.026659ms)\n  ✔ tool-block (0.030646ms)\n  ✔ circuit-closed (0.064866ms)\n  ✔ failover-primary (0.03387ms)\n  ✔ cache-miss (0.336477ms)\n  ✔ health (0.041451ms)\n✔ native Functions Framework frozen contract (195.720055ms)\n✔ required envelope fields must be own properties (0.11507ms)\n✔ integer validation rejects unsafe values and nonfinite values without coercion (0.283518ms)\n✔ validation work and diagnostic counts are bounded (0.319913ms)\n✔ valid opaque arguments and optional unknown properties are preserved (0.113016ms)\nℹ tests 53\nℹ suites 0\nℹ pass 53\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 321.825744\n",
+        "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+      },
+      "audit": {
+        "args": [
+          "npm",
+          "audit",
+          "--json"
+        ],
+        "status": 0,
+        "signal": null,
+        "stdout": "{\n  \"auditReportVersion\": 2,\n  \"vulnerabilities\": {},\n  \"metadata\": {\n    \"vulnerabilities\": {\n      \"info\": 0,\n      \"low\": 0,\n      \"moderate\": 0,\n      \"high\": 0,\n      \"critical\": 0,\n      \"total\": 0\n    },\n    \"dependencies\": {\n      \"prod\": 135,\n      \"dev\": 0,\n      \"optional\": 6,\n      \"peer\": 0,\n      \"peerOptional\": 0,\n      \"total\": 140\n    }\n  }\n}\n",
+        "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+      },
+      "cli": {
+        "args": [
+          "npm",
+          "run",
+          "test:cli"
+        ],
+        "status": 0,
+        "signal": null,
+        "stdout": "\n> @llm-dev-ops/llm-edge-agent@0.1.0 test:cli\n> node bin/llm-edge-agent.js --version\n\n0.1.0\n",
+        "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+      },
+      "trials": [
+        {
+          "holdout": [
+            {
+              "name": "validity must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "staleness must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "cache key must be string",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "layer must be string",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "success must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "sensitivity must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "size must be nonnegative",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "latency must be numeric",
+              "pass": true,
+              "actualStatus": 400
+            }
+          ],
+          "anchor": [
+            {
+              "name": "valid hit",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "stale miss",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "valid write",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "sensitive bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "failed response bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "opaque forward fields",
+              "pass": true,
+              "actualStatus": 200
+            }
+          ]
+        },
+        {
+          "holdout": [
+            {
+              "name": "validity must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "staleness must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "cache key must be string",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "layer must be string",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "success must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "sensitivity must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "size must be nonnegative",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "latency must be numeric",
+              "pass": true,
+              "actualStatus": 400
+            }
+          ],
+          "anchor": [
+            {
+              "name": "valid hit",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "stale miss",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "valid write",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "sensitive bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "failed response bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "opaque forward fields",
+              "pass": true,
+              "actualStatus": 200
+            }
+          ]
+        },
+        {
+          "holdout": [
+            {
+              "name": "validity must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "staleness must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "cache key must be string",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "layer must be string",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "success must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "sensitivity must be boolean",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "size must be nonnegative",
+              "pass": true,
+              "actualStatus": 400
+            },
+            {
+              "name": "latency must be numeric",
+              "pass": true,
+              "actualStatus": 400
+            }
+          ],
+          "anchor": [
+            {
+              "name": "valid hit",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "stale miss",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "valid write",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "sensitive bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "failed response bypass",
+              "pass": true,
+              "actualStatus": 200
+            },
+            {
+              "name": "opaque forward fields",
+              "pass": true,
+              "actualStatus": 200
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "replay": {
+    "pass": true,
+    "checks": {
+      "receipts": true,
+      "reachesRoot": true,
+      "contiguousParents": true,
+      "allPromoted": true,
+      "gateUnchanged": true,
+      "gateReExecutes": true,
+      "allCommitsReceipts": true,
+      "sealedFieldsAuthentic": true
+    },
+    "failures": [],
+    "chainSummary": "gen0(root)"
+  },
+  "replayBundle": {
+    "data_source": "LIVE_NATIVE_HTTP_SYNTHETIC_PROJECT_FIXTURES",
+    "root_id": "root",
+    "chain": [
+      {
+        "id": "root",
+        "generation": 0,
+        "parents": [],
+        "mutation": null,
+        "primaryDelta": 0,
+        "anchorScore": 1,
+        "verdict": "ROOT",
+        "failureReasons": [],
+        "receipt": {
+          "payload": {
+            "kind": "root",
+            "root": "root"
+          },
+          "signature": "Yj1Pg+uZu5d3pnodPOQ8PooBOF0i76WCF66sb4oHbMxD9FWtnGWAX/WPH3PDZ6oOCYwNtft5e7r0ViELif3YCA==",
+          "publicKey": "MCowBQYDK2VwAyEAbJftc4PCItccI99VlqYsuUTqn0Kv4wTA1NKce/3Vm/I=",
+          "alg": "ed25519"
+        },
+        "createdAt": "gen-0"
+      }
+    ],
+    "all_commits": [
+      {
+        "id": "root__revision_gen1",
+        "generation": 1,
+        "parents": [
+          "root"
+        ],
+        "mutation": {
+          "target": "revision",
+          "summary": "Validate cache metadata and compatible audited dependency patches; broad Rust/CI gates remain blocked",
+          "inverse": {
+            "path": "cloud-functions/contracts.js",
+            "parentBytes": "'use strict';\n\n/**\n * Contract schemas for all 5 edge agents.\n *\n * These mirror the Rust contracts in crates/agentics-contracts/\n * and crates/llm-edge-agents/src/contracts.rs.\n */\n\nconst toolInvokeContract = {\n  request: {\n    type: 'object',\n    required: ['tool', 'arguments'],\n    properties: {\n      tool: {\n        type: 'object',\n        required: ['name'],\n        properties: {\n          name: { type: 'string' },\n          description: { type: 'string' },\n          parameters: { type: 'array', items: { type: 'object' } },\n          capabilities: { type: 'array', items: { type: 'string' } },\n        },\n      },\n      arguments: { type: 'object' },\n      context: { $ref: '#/definitions/executionContext' },\n      constraints: {\n        type: 'object',\n        properties: {\n          max_execution_time_ms: { type: 'integer' },\n          max_memory_bytes: { type: 'integer' },\n          allowed_tools: { type: 'array', items: { type: 'string' } },\n          blocked_tools: { type: 'array', items: { type: 'string' } },\n          max_concurrent: { type: 'integer' },\n          required_capabilities: { type: 'array', items: { type: 'string' } },\n        },\n      },\n    },\n  },\n  response: {\n    type: 'object',\n    properties: {\n      success: { type: 'boolean' },\n      data: { type: 'object' },\n      error: { $ref: '#/definitions/apiError' },\n    },\n  },\n};\n\nconst circuitBreakerContract = {\n  request: {\n    type: 'object',\n    required: ['provider_id', 'execution_ref'],\n    properties: {\n      provider_id: { type: 'string' },\n      execution_ref: { type: 'string' },\n      action: { type: 'string', enum: ['check', 'record_failure', 'record_success'] },\n      current_state: { type: 'string', enum: ['closed', 'open', 'half_open'] },\n      failure_count: { type: 'integer', minimum: 0 },\n      success_count: { type: 'integer', minimum: 0 },\n      failure_signal: {\n        type: 'object',\n        properties: {\n          provider_id: { type: 'string' },\n          failure_type: { type: 'string' },\n        },\n      },\n      success_signal: {\n        type: 'object',\n        properties: {\n          provider_id: { type: 'string' },\n        },\n      },\n      config: { $ref: '#/definitions/circuitBreakerConfig' },\n    },\n  },\n  response: {\n    type: 'object',\n    properties: {\n      success: { type: 'boolean' },\n      data: {\n        type: 'object',\n        properties: {\n          decision: { type: 'object' },\n          new_state: { type: 'string' },\n          new_failure_count: { type: 'integer' },\n          new_success_count: { type: 'integer' },\n          state_transition: { type: 'object' },\n        },\n      },\n      error: { type: 'string' },\n    },\n  },\n};\n\nconst failoverContract = {\n  request: {\n    type: 'object',\n    required: ['execution_context', 'primary_target'],\n    properties: {\n      execution_context: { $ref: '#/definitions/executionContext' },\n      primary_target: { $ref: '#/definitions/targetProvider' },\n      alternate_targets: {\n        type: 'array',\n        items: { $ref: '#/definitions/targetProvider' },\n      },\n      policy: { $ref: '#/definitions/failoverPolicy' },\n    },\n  },\n  response: {\n    type: 'object',\n    properties: {\n      success: { type: 'boolean' },\n      data: {\n        type: 'object',\n        properties: {\n          decision: { type: 'object' },\n          constraints_applied: { type: 'array' },\n          duration_us: { type: 'integer' },\n        },\n      },\n      error: { type: 'string' },\n    },\n  },\n};\n\nconst executionGuardContract = {\n  request: {\n    type: 'object',\n    required: ['envelope'],\n    properties: {\n      envelope: {\n        type: 'object',\n        required: ['request_id', 'model', 'input_tokens', 'max_output_tokens'],\n        properties: {\n          request_id: { type: 'string' },\n          model: { type: 'string' },\n          provider: { type: 'string' },\n          input_tokens: { type: 'integer', minimum: 0 },\n          max_output_tokens: { type: 'integer', minimum: 0 },\n          estimated_duration_ms: { type: 'integer', minimum: 0 },\n          estimated_memory_bytes: { type: 'integer', minimum: 0 },\n          estimated_cost_micros: { type: 'integer', minimum: 0 },\n          current_concurrency: { type: 'integer', minimum: 0 },\n          metadata: { type: 'object' },\n        },\n      },\n      context: { $ref: '#/definitions/executionContext' },\n      limits: {\n        type: 'object',\n        properties: {\n          max_input_tokens: { type: 'integer', minimum: 0 },\n          max_output_tokens: { type: 'integer', minimum: 0 },\n          max_total_tokens: { type: 'integer', minimum: 0 },\n          max_cost_micros: { type: 'integer', minimum: 0 },\n          max_concurrency: { type: 'integer', minimum: 0 },\n          max_rate_per_minute: { type: 'integer', minimum: 0 },\n          allowed_models: { type: 'array', items: { type: 'string' } },\n          blocked_models: { type: 'array', items: { type: 'string' } },\n        },\n      },\n      current_rate: { type: 'integer', minimum: 0 },\n    },\n  },\n  response: {\n    type: 'object',\n    properties: {\n      success: { type: 'boolean' },\n      data: { type: 'object' },\n      error: { $ref: '#/definitions/apiError' },\n    },\n  },\n};\n\nconst cachingContract = {\n  request: {\n    type: 'object',\n    required: ['input'],\n    properties: {\n      input: {\n        type: 'object',\n        required: ['execution_ref', 'request_type', 'content_hash', 'prompt_hash'],\n        properties: {\n          execution_ref: { type: 'string' },\n          request_type: { type: 'string' },\n          provider_id: { type: 'string' },\n          model_id: { type: 'string' },\n          content_hash: { type: 'string' },\n          prompt_hash: { type: 'string' },\n          semantic_hash: { type: 'string' },\n          cache_relevant_params: {\n            type: 'object',\n            properties: {\n              temperature: { type: 'number' },\n              top_p: { type: 'number' },\n              max_tokens: { type: 'integer' },\n              seed: { type: 'integer' },\n              response_format: { type: 'string' },\n              stream: { type: 'boolean' },\n              system_prompt_hash: { type: 'string' },\n            },\n          },\n          policy: { type: 'object' },\n          existing_entry: { type: 'object' },\n          check_cache: { type: 'boolean' },\n          is_write_operation: { type: 'boolean' },\n          response_metadata: { type: 'object' },\n          tenant_id: { type: 'string' },\n          user_id_hash: { type: 'string' },\n        },\n      },\n      context: { $ref: '#/definitions/executionContext' },\n      config_override: { type: 'object' },\n    },\n  },\n  response: {\n    type: 'object',\n    properties: {\n      decision: { type: 'string', enum: ['cache_hit', 'cache_miss', 'cache_write', 'cache_bypass', 'cache_invalidate'] },\n      directives: { type: 'array' },\n      confidence: { type: 'number', minimum: 0, maximum: 1 },\n    },\n  },\n};\n\nconst definitions = {\n  executionContext: {\n    type: 'object',\n    properties: {\n      execution_ref: { type: 'string' },\n      execution_id: { type: 'string' },\n      parent_span_id: { type: 'string' },\n      request_id: { type: 'string' },\n      tenant_id: { type: 'string' },\n      user_id: { type: 'string' },\n      session_id: { type: 'string' },\n      source: { type: 'string' },\n      tags: { type: 'object' },\n    },\n  },\n  apiError: {\n    type: 'object',\n    properties: {\n      code: { type: 'string' },\n      message: { type: 'string' },\n      details: { type: 'object' },\n    },\n  },\n  targetProvider: {\n    type: 'object',\n    required: ['provider_id', 'provider_name', 'model'],\n    properties: {\n      provider_id: { type: 'string' },\n      provider_name: { type: 'string' },\n      model: { type: 'string' },\n      endpoint: { type: 'string' },\n      priority: { type: 'integer' },\n      circuit_state: { type: 'string', enum: ['closed', 'open', 'half_open'] },\n      health: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'] },\n      metadata: { type: 'object' },\n    },\n  },\n  failoverPolicy: {\n    type: 'object',\n    properties: {\n      max_retries: { type: 'integer' },\n      failover_strategy: { type: 'string' },\n      timeout_ms: { type: 'integer' },\n    },\n  },\n  circuitBreakerConfig: {\n    type: 'object',\n    properties: {\n      failure_threshold: { type: 'integer' },\n      success_threshold: { type: 'integer' },\n      timeout_seconds: { type: 'integer' },\n      half_open_max_requests: { type: 'integer' },\n    },\n  },\n};\n\n/**\n * Enforce the schema subset used by the published agent contracts: local\n * definition refs, object/array/scalar types, required fields, enum and minimum.\n * This is not a general-purpose JSON Schema implementation. Unknown request\n * properties remain permitted for forward compatibility; no coercion is used.\n * Returns { valid: true } or { valid: false, errors: [...] }.\n */\nfunction validateRequest(body, schema) {\n  if (!body || typeof body !== 'object' || Array.isArray(body)) {\n    return { valid: false, errors: ['Request body must be a JSON object'] };\n  }\n\n  const errors = [];\n  let visited = 0;\n  function check(value, rule, path, depth) {\n    if (errors.length >= 32) return;\n    if (++visited > 10000 || depth > 32) {\n      errors.push('Request exceeds contract validation budget');\n      return;\n    }\n    if (rule.$ref) {\n      const prefix = '#/definitions/';\n      const name = rule.$ref.startsWith(prefix) ? rule.$ref.slice(prefix.length) : '';\n      if (!Object.hasOwn(definitions, name)) {\n        errors.push(`${path}: unsupported contract reference`);\n        return;\n      }\n      check(value, definitions[name], path, depth + 1);\n      return;\n    }\n    const matches = {\n      object: () => value !== null && typeof value === 'object' && !Array.isArray(value),\n      array: () => Array.isArray(value),\n      string: () => typeof value === 'string',\n      boolean: () => typeof value === 'boolean',\n      number: () => typeof value === 'number' && Number.isFinite(value),\n      integer: () => Number.isSafeInteger(value),\n    };\n    if (rule.type && (!Object.hasOwn(matches, rule.type) || !matches[rule.type]())) {\n      errors.push(`${path}: expected ${rule.type}`);\n      return;\n    }\n    if (rule.enum && !rule.enum.includes(value)) errors.push(`${path}: value is not allowed`);\n    if (rule.minimum !== undefined && value < rule.minimum) errors.push(`${path}: below minimum ${rule.minimum}`);\n    if (rule.type === 'object') {\n      for (const field of rule.required || []) {\n        if (!Object.hasOwn(value, field) || value[field] == null) {\n          errors.push(`Missing required field: ${path}.${field}`);\n          if (errors.length >= 32) return;\n        }\n      }\n      for (const [field, property] of Object.entries(rule.properties || {})) {\n        if (Object.hasOwn(value, field) && value[field] !== undefined) check(value[field], property, `${path}.${field}`, depth + 1);\n        if (errors.length >= 32) return;\n      }\n    } else if (rule.type === 'array' && rule.items) {\n      for (let i = 0; i < value.length; i++) {\n        check(value[i], rule.items, `${path}[${i}]`, depth + 1);\n        if (errors.length >= 32 || visited > 10000) return;\n      }\n    }\n  }\n  check(body, schema, 'body', 0);\n\n  return errors.length > 0 ? { valid: false, errors } : { valid: true, errors: [] };\n}\n\nmodule.exports = {\n  toolInvokeContract,\n  circuitBreakerContract,\n  failoverContract,\n  executionGuardContract,\n  cachingContract,\n  definitions,\n  validateRequest,\n};\n",
+            "hash": "893f1261ff043c72c5e64508bd351befd66b777dc7e92c46af94e131338bf618"
+          }
+        },
+        "primaryDelta": 1,
+        "anchorScore": null,
+        "verdict": "REJECTED",
+        "failureReasons": [
+          "safety_regressed"
+        ],
+        "receipt": {
+          "payload": {
+            "kind": "candidate",
+            "id": "root__revision_gen1",
+            "target": "revision",
+            "verdict": "REJECTED",
+            "primaryDelta": 1,
+            "baselineScore": {
+              "primary": 0,
+              "noopRate": 0,
+              "costPerWin": 0,
+              "regressed": true,
+              "itemWins": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+              ]
+            },
+            "candidateScore": {
+              "primary": 1,
+              "noopRate": 0,
+              "costPerWin": 0,
+              "regressed": true,
+              "itemWins": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ]
+            },
+            "anchorScore": null,
+            "failureReasons": [
+              "safety_regressed"
+            ],
+            "parents": [
+              "root"
+            ],
+            "generation": 1
+          },
+          "signature": "Og/GxTW6FkgCf8JQpEUwNZmlj2nAFCeTv/D5leXDYo3xdm8U/Hm9OMdV4MPX3m2GCXhiwFn/i1fxjWOfpP8XBQ==",
+          "publicKey": "MCowBQYDK2VwAyEAbJftc4PCItccI99VlqYsuUTqn0Kv4wTA1NKce/3Vm/I=",
+          "alg": "ed25519"
+        },
+        "createdAt": "gen-1",
+        "baselineScore": {
+          "primary": 0,
+          "noopRate": 0,
+          "costPerWin": 0,
+          "regressed": true,
+          "itemWins": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        "candidateScore": {
+          "primary": 1,
+          "noopRate": 0,
+          "costPerWin": 0,
+          "regressed": true,
+          "itemWins": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      }
+    ],
+    "lift_curve": [
+      {
+        "generation": 0,
+        "primary": 0,
+        "delta": 0,
+        "anchor": 1
+      }
+    ],
+    "gate_fingerprint": "c5942e7c9bf8f28fe7af47a6ec3887d11eeb3f8c8e8601cc6a7a54969ea0b981",
+    "verified_improvements": 0,
+    "anchor_surviving_improvements": 0,
+    "milestone_reached": false,
+    "created_at": "gen-1"
+  },
+  "fullAcceptance": "BLOCKED: Rust and required CI/approvals not all passing"
+}

@@ -1,0 +1,265 @@
+{
+  "revision": "9abcfbb519edde742d0c733e37fad0b9f01a894e",
+  "tests": {
+    "args": [
+      "npm",
+      "test"
+    ],
+    "status": 0,
+    "signal": null,
+    "stdout": "\n> @llm-dev-ops/llm-edge-agent@0.1.0 test\n> node test/cloud-functions.test.js && node --test test/native-contract.test.cjs test/cache-metadata.test.cjs\n\n\n\u001b[1medge-agents Cloud Function tests\u001b[0m\n\nEntry point:\n  \u001b[32m✓\u001b[0m handler is exported as a function\n\nCORS:\n  \u001b[32m✓\u001b[0m OPTIONS returns 204 with CORS headers\n  \u001b[32m✓\u001b[0m non-OPTIONS responses include CORS headers\n  \u001b[32m✓\u001b[0m configured CORS allowlist reflects only the trusted origin\n  \u001b[32m✓\u001b[0m configured CORS allowlist does not grant an untrusted origin\n  \u001b[32m✓\u001b[0m preflight rejects an untrusted origin\n\nHealth:\n  \u001b[32m✓\u001b[0m GET /health returns 200 with all 5 agents\n  \u001b[32m✓\u001b[0m GET / aliases to health\n\nexecution_metadata:\n  \u001b[32m✓\u001b[0m response includes execution_metadata with required fields\n  \u001b[32m✓\u001b[0m x-correlation-id header is used as trace_id\n\nlayers_executed:\n  \u001b[32m✓\u001b[0m response includes layers_executed with AGENT_ROUTING\n  \u001b[32m✓\u001b[0m layers_executed includes agent-specific layer with duration_ms\n\nRouting:\n  \u001b[32m✓\u001b[0m all 5 routes are registered\n  \u001b[32m✓\u001b[0m unknown route returns 404\n\nContracts:\n  \u001b[32m✓\u001b[0m GET /v1/edge/contracts returns all 5 schemas\n\nTool Invocation Agent:\n  \u001b[32m✓\u001b[0m POST valid request returns allow\n  \u001b[32m✓\u001b[0m POST blocked tool returns 403\n  \u001b[32m✓\u001b[0m POST missing tool field returns 400\n  \u001b[32m✓\u001b[0m GET returns inspect metadata\n\nCircuit Breaker Agent:\n  \u001b[32m✓\u001b[0m POST closed circuit returns allow\n  \u001b[32m✓\u001b[0m POST open circuit returns block\n  \u001b[32m✓\u001b[0m POST failures trigger state transition to open\n\nFailover Agent:\n  \u001b[32m✓\u001b[0m POST healthy primary returns use_primary\n  \u001b[32m✓\u001b[0m POST unhealthy primary fails over to alternate\n  \u001b[32m✓\u001b[0m POST all targets down returns no_available_target\n\nExecution Guard Agent:\n  \u001b[32m✓\u001b[0m POST within limits returns allow\n  \u001b[32m✓\u001b[0m POST exceeding token limit returns block\n  \u001b[32m✓\u001b[0m POST blocked model returns block\n\nCaching Strategy Agent:\n  \u001b[32m✓\u001b[0m POST with cache hit returns cache_hit\n  \u001b[32m✓\u001b[0m POST with no cache entry returns cache_miss\n  \u001b[32m✓\u001b[0m POST streaming request returns cache_bypass\n  \u001b[32m✓\u001b[0m POST write operation returns cache_write\n\nError handling:\n  \u001b[32m✓\u001b[0m 404 response includes execution_metadata\n\n\u001b[1mResults: 33 passed, 0 failed\u001b[0m\n\n▶ cache metadata rejects malformed fields and preserves valid decisions\n  ✔ validity must be boolean (0.869403ms)\n  ✔ staleness must be boolean (0.153707ms)\n  ✔ cache key must be string (0.139546ms)\n  ✔ layer must be string (0.085406ms)\n  ✔ success must be boolean (0.079618ms)\n  ✔ sensitivity must be boolean (0.073348ms)\n  ✔ size must be nonnegative (0.079968ms)\n  ✔ latency must be numeric (0.091946ms)\n  ✔ valid hit (0.129341ms)\n  ✔ stale miss (0.141139ms)\n  ✔ valid write (0.119887ms)\n  ✔ sensitive bypass (0.065867ms)\n  ✔ failed response bypass (0.051706ms)\n  ✔ opaque forward fields (0.048813ms)\n✔ cache metadata rejects malformed fields and preserves valid decisions (173.117273ms)\n▶ native Functions Framework frozen contract\n  ✔ guard-envelope-string (0.834382ms)\n  ✔ guard-missing-model (0.08134ms)\n  ✔ guard-string-tokens (0.059558ms)\n  ✔ guard-negative-tokens (0.127908ms)\n  ✔ guard-fractional-tokens (0.091325ms)\n  ✔ guard-string-cost (0.055522ms)\n  ✔ guard-nonfinite-cost (0.148669ms)\n  ✔ guard-string-concurrency (0.14184ms)\n  ✔ guard-negative-rate (0.221267ms)\n  ✔ guard-string-limit (0.095802ms)\n  ✔ guard-null-limit (0.055161ms)\n  ✔ guard-string-blocklist (0.039429ms)\n  ✔ guard-invalid-allowlist-item (0.041612ms)\n  ✔ tool-numeric-name (0.034621ms)\n  ✔ tool-array-arguments (0.104685ms)\n  ✔ circuit-invalid-state (0.046389ms)\n  ✔ failover-missing-model (0.03361ms)\n  ✔ failover-string-alternates (0.029093ms)\n  ✔ cache-string-input (0.028432ms)\n  ✔ cache-string-stream (0.026149ms)\n  ✔ guard-default-concurrency (0.026569ms)\n  ✔ guard-allow (0.030005ms)\n  ✔ guard-token-block (0.031286ms)\n  ✔ guard-cost-block (0.026689ms)\n  ✔ guard-concurrency-block (0.123762ms)\n  ✔ guard-rate-block (0.035913ms)\n  ✔ guard-model-block (0.028392ms)\n  ✔ tool-allow (0.026659ms)\n  ✔ tool-block (0.030646ms)\n  ✔ circuit-closed (0.064866ms)\n  ✔ failover-primary (0.03387ms)\n  ✔ cache-miss (0.336477ms)\n  ✔ health (0.041451ms)\n✔ native Functions Framework frozen contract (195.720055ms)\n✔ required envelope fields must be own properties (0.11507ms)\n✔ integer validation rejects unsafe values and nonfinite values without coercion (0.283518ms)\n✔ validation work and diagnostic counts are bounded (0.319913ms)\n✔ valid opaque arguments and optional unknown properties are preserved (0.113016ms)\nℹ tests 53\nℹ suites 0\nℹ pass 53\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 321.825744\n",
+    "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+  },
+  "audit": {
+    "args": [
+      "npm",
+      "audit",
+      "--json"
+    ],
+    "status": 0,
+    "signal": null,
+    "stdout": "{\n  \"auditReportVersion\": 2,\n  \"vulnerabilities\": {},\n  \"metadata\": {\n    \"vulnerabilities\": {\n      \"info\": 0,\n      \"low\": 0,\n      \"moderate\": 0,\n      \"high\": 0,\n      \"critical\": 0,\n      \"total\": 0\n    },\n    \"dependencies\": {\n      \"prod\": 135,\n      \"dev\": 0,\n      \"optional\": 6,\n      \"peer\": 0,\n      \"peerOptional\": 0,\n      \"total\": 140\n    }\n  }\n}\n",
+    "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+  },
+  "cli": {
+    "args": [
+      "npm",
+      "run",
+      "test:cli"
+    ],
+    "status": 0,
+    "signal": null,
+    "stdout": "\n> @llm-dev-ops/llm-edge-agent@0.1.0 test:cli\n> node bin/llm-edge-agent.js --version\n\n0.1.0\n",
+    "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+  },
+  "trials": [
+    {
+      "holdout": [
+        {
+          "name": "validity must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "staleness must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "cache key must be string",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "layer must be string",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "success must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "sensitivity must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "size must be nonnegative",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "latency must be numeric",
+          "pass": true,
+          "actualStatus": 400
+        }
+      ],
+      "anchor": [
+        {
+          "name": "valid hit",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "stale miss",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "valid write",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "sensitive bypass",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "failed response bypass",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "opaque forward fields",
+          "pass": true,
+          "actualStatus": 200
+        }
+      ]
+    },
+    {
+      "holdout": [
+        {
+          "name": "validity must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "staleness must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "cache key must be string",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "layer must be string",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "success must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "sensitivity must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "size must be nonnegative",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "latency must be numeric",
+          "pass": true,
+          "actualStatus": 400
+        }
+      ],
+      "anchor": [
+        {
+          "name": "valid hit",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "stale miss",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "valid write",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "sensitive bypass",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "failed response bypass",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "opaque forward fields",
+          "pass": true,
+          "actualStatus": 200
+        }
+      ]
+    },
+    {
+      "holdout": [
+        {
+          "name": "validity must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "staleness must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "cache key must be string",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "layer must be string",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "success must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "sensitivity must be boolean",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "size must be nonnegative",
+          "pass": true,
+          "actualStatus": 400
+        },
+        {
+          "name": "latency must be numeric",
+          "pass": true,
+          "actualStatus": 400
+        }
+      ],
+      "anchor": [
+        {
+          "name": "valid hit",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "stale miss",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "valid write",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "sensitive bypass",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "failed response bypass",
+          "pass": true,
+          "actualStatus": 200
+        },
+        {
+          "name": "opaque forward fields",
+          "pass": true,
+          "actualStatus": 200
+        }
+      ]
+    }
+  ]
+}
