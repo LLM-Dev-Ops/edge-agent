@@ -1,0 +1,7 @@
+{
+  "date": "2026-11-06",
+  "baseline": "9abcfbb519edde742d0c733e37fad0b9f01a894e",
+  "holdout": 4,
+  "anchors": 8,
+  "acceptance": "Only unsafe resulting circuit counters rejected400 VALIDATION_ERROR with metadata, no successful data. Existing maximum safe values retained when no increment occurs; last exact increment and state thresholds unchanged. Original assertions retained. Broad Rust/security/CI/coverage/Ruflo gates required for merge. Five alternating trials; no speedup or cost claim."
+}

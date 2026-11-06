@@ -51,7 +51,9 @@ async function handle(req) {
     };
   }
 
-  const envelope = body.envelope;
+  // The published concurrency field is optional; absence means no concurrent
+  // requests, not an undefined comparison that silently fails its own check.
+  const envelope = { current_concurrency: 0, ...body.envelope };
   const limits = { ...DEFAULT_LIMITS, ...(body.limits || {}) };
   const constraintsEvaluated = [];
   const violations = [];

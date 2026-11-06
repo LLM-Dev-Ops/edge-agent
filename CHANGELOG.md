@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Reject circuit-breaker counter increments that exceed JavaScript's safe integer
+  range; preserve maximum safe counts when the selected state does not increment.
+- Enforce nested Cloud Function contract types, safe integers, enum values and
+  numeric minima before policy arithmetic; reject malformed execution limits.
+- Default omitted execution-guard concurrency to zero, preserving stateless
+  per-request decisions without introducing counters or persistence.
+
 ### Project Initialization
 
 #### Added

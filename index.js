@@ -21,7 +21,7 @@ exports.handler = async (req, res) => {
     return handlePreflight(req, res);
   }
 
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
 
   const start = Date.now();
   const trace_id = req.headers['x-correlation-id'] || crypto.randomUUID();
