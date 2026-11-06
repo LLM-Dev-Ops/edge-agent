@@ -110,6 +110,19 @@ async function handle(req) {
       break;
   }
 
+  // Safe inputs can still overflow when incremented. Reject the resulting
+  // transition instead of emitting rounded state that cannot be replayed exactly.
+  if (!Number.isSafeInteger(newFailureCount) || !Number.isSafeInteger(newSuccessCount)) {
+    return {
+      status: 400,
+      body: {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Circuit counter increment exceeds safe integer range' },
+      },
+      layerStatus: 'completed',
+    };
+  }
+
   return {
     status: 200,
     body: {
